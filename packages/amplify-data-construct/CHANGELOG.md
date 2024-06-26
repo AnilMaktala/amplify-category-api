@@ -3,6 +3,61 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.8.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.8.5...@aws-amplify/data-construct@1.8.6) (2024-06-25)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+## [1.8.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.8.4...@aws-amplify/data-construct@1.8.5) (2024-06-06)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+## [1.8.4](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.8.3...@aws-amplify/data-construct@1.8.4) (2024-06-04)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+## [1.8.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.8.2...@aws-amplify/data-construct@1.8.3) (2024-05-15)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+## [1.8.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.8.1...@aws-amplify/data-construct@1.8.2) (2024-05-10)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+## [1.8.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.8.0...@aws-amplify/data-construct@1.8.1) (2024-05-01)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+# [1.8.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.7.2...@aws-amplify/data-construct@1.8.0) (2024-04-26)
+
+### Features
+
+- allow multiple graphql APIs in a cdk app ([#2406](https://github.com/aws-amplify/amplify-category-api/issues/2406)) ([72ca6ba](https://github.com/aws-amplify/amplify-category-api/commit/72ca6ba7243d1f267d38be76e43d623d16608c14))
+- generic iam authorization ([#2385](https://github.com/aws-amplify/amplify-category-api/issues/2385)) ([550ee80](https://github.com/aws-amplify/amplify-category-api/commit/550ee803275817d25447ff1400d55eb1ad4cd0c2))
+
+## [1.7.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.7.1...@aws-amplify/data-construct@1.7.2) (2024-04-16)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+## [1.7.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.7.0...@aws-amplify/data-construct@1.7.1) (2024-04-11)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
+# [1.7.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.6.0...@aws-amplify/data-construct@1.7.0) (2024-03-28)
+
+### Features
+
+- add secrets manager as credential store for sql lambda ([#2289](https://github.com/aws-amplify/amplify-category-api/issues/2289)) ([affdb98](https://github.com/aws-amplify/amplify-category-api/commit/affdb988b499591c3a96608f772b637ddd8c3a0c))
+
+# [1.6.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.5.7...@aws-amplify/data-construct@1.6.0) (2024-03-13)
+
+### Features
+
+- replace conflictResolution with dataStoreConfiguration ([#2298](https://github.com/aws-amplify/amplify-category-api/issues/2298)) ([b5fb92b](https://github.com/aws-amplify/amplify-category-api/commit/b5fb92b5ae5b9eab3acfa44f7977d9159116c6f9))
+
+## [1.5.7](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.5.6...@aws-amplify/data-construct@1.5.7) (2024-02-28)
+
+**Note:** Version bump only for package @aws-amplify/data-construct
+
 ## [1.5.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/data-construct@1.5.5...@aws-amplify/data-construct@1.5.6) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/data-construct

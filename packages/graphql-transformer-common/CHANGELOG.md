@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.31.0](https://github.com/aws-amplify/amplify-category-api/compare/graphql-transformer-common@4.30.1...graphql-transformer-common@4.31.0) (2024-06-25)
+
+### Features
+
+- **generate-schema:** custom ssl cert support to generate schema command ([#2615](https://github.com/aws-amplify/amplify-category-api/issues/2615)) ([390887f](https://github.com/aws-amplify/amplify-category-api/commit/390887ff4467baca9dad8f70071442b95bb04cf9))
+
+## [4.30.1](https://github.com/aws-amplify/amplify-category-api/compare/graphql-transformer-common@4.30.0...graphql-transformer-common@4.30.1) (2024-04-26)
+
+**Note:** Version bump only for package graphql-transformer-common
+
+# [4.30.0](https://github.com/aws-amplify/amplify-category-api/compare/graphql-transformer-common@4.29.0...graphql-transformer-common@4.30.0) (2024-04-11)
+
+### Bug Fixes
+
+- **api:** add identifier to generated ts data schema ([#2440](https://github.com/aws-amplify/amplify-category-api/issues/2440)) ([aa7de30](https://github.com/aws-amplify/amplify-category-api/commit/aa7de30e4abb49e2684477607b3cadbe2fbc4e20))
+
+### Features
+
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+# [4.29.0](https://github.com/aws-amplify/amplify-category-api/compare/graphql-transformer-common@4.28.1...graphql-transformer-common@4.29.0) (2024-03-28)
+
+### Features
+
+- **api:** auto detect vpc configuration on generate typescript database schema ([#2376](https://github.com/aws-amplify/amplify-category-api/issues/2376)) ([ef6f53c](https://github.com/aws-amplify/amplify-category-api/commit/ef6f53c04bbcc50921bf20a937d1332d4597a3fa))
+
+## [4.28.1](https://github.com/aws-amplify/amplify-category-api/compare/graphql-transformer-common@4.28.0...graphql-transformer-common@4.28.1) (2024-02-28)
+
+**Note:** Version bump only for package graphql-transformer-common
+
 # [4.28.0](https://github.com/aws-amplify/amplify-category-api/compare/graphql-transformer-common@4.27.1...graphql-transformer-common@4.28.0) (2024-02-05)
 
 ### Features

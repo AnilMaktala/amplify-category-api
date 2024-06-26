@@ -28,6 +28,56 @@ export interface IAMAuthorizationConfig {
   /**
    * ID for the Cognito Identity Pool vending auth and unauth roles.
    * Format: `<region>:<id string>`
+   *
+   * @deprecated Use 'IdentityPoolAuthorizationConfig.identityPoolId' instead.
+   * See https://docs.amplify.aws/cli/react/tools/cli/migration/iam-auth-updates-for-cdk-construct for details.
+   */
+  readonly identityPoolId?: string;
+
+  /**
+   * Authenticated user role, applies to { provider: iam, allow: private } access.
+   *
+   * @deprecated Use 'IdentityPoolAuthorizationConfig.authenticatedUserRole' instead.
+   * See https://docs.amplify.aws/cli/react/tools/cli/migration/iam-auth-updates-for-cdk-construct for details.
+   */
+  readonly authenticatedUserRole?: IRole;
+
+  /**
+   * Unauthenticated user role, applies to { provider: iam, allow: public } access.
+   *
+   * @deprecated Use 'IdentityPoolAuthorizationConfig.unauthenticatedUserRole' instead.
+   * See https://docs.amplify.aws/cli/react/tools/cli/migration/iam-auth-updates-for-cdk-construct for details.
+   */
+  readonly unauthenticatedUserRole?: IRole;
+
+  /**
+   * A list of IAM roles which will be granted full read/write access to the generated model if IAM auth is enabled.
+   * If an IRole is provided, the role `name` will be used for matching.
+   * If a string is provided, the raw value will be used for matching.
+   *
+   * @deprecated Use 'enableIamAuthorizationMode' and IAM Policy to control access for IAM principals.
+   * See https://docs.amplify.aws/cli/react/tools/cli/migration/iam-auth-updates-for-cdk-construct for details.
+   */
+  readonly allowListedRoles?: (IRole | string)[];
+
+  /**
+   * Enables access for IAM principals. If enabled @auth directive rules are not applied.
+   * Instead, access should be defined by IAM Policy, see https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsappsync.html.
+   *
+   * Does not apply to authenticated and unauthenticated IAM Roles attached to Cognito Identity Pool.
+   * Use IdentityPoolAuthorizationConfig to configure their access.
+   */
+  readonly enableIamAuthorizationMode?: boolean;
+}
+
+/**
+ * Configuration for Cognito Identity Pool Authorization on the Graphql Api.
+ * @struct - required since this interface begins with an 'I'
+ */
+export interface IdentityPoolAuthorizationConfig {
+  /**
+   * ID for the Cognito Identity Pool vending auth and unauth roles.
+   * Format: `<region>:<id string>`
    */
   readonly identityPoolId: string;
 
@@ -40,13 +90,6 @@ export interface IAMAuthorizationConfig {
    * Unauthenticated user role, applies to { provider: iam, allow: public } access.
    */
   readonly unauthenticatedUserRole: IRole;
-
-  /**
-   * A list of IAM roles which will be granted full read/write access to the generated model if IAM auth is enabled.
-   * If an IRole is provided, the role `name` will be used for matching.
-   * If a string is provided, the raw value will be used for matching.
-   */
-  readonly allowListedRoles?: (IRole | string)[];
 }
 
 /**
@@ -134,10 +177,18 @@ export interface AuthorizationModes {
   readonly defaultAuthorizationMode?: 'AWS_IAM' | 'AMAZON_COGNITO_USER_POOLS' | 'OPENID_CONNECT' | 'API_KEY' | 'AWS_LAMBDA';
 
   /**
-   * IAM Auth config, required if an 'iam' auth provider is specified in the Api.
-   * Applies to 'public' and 'private' auth strategies.
+   * IAM Auth config, required to allow IAM-based access to this API.
+   * This applies to any IAM principal except Amazon Cognito identity pool's authenticated and unauthenticated roles.
+   * This behavior was has recently been improved.
+   * See https://docs.amplify.aws/cli/react/tools/cli/migration/iam-auth-updates-for-cdk-construct for details.
    */
   readonly iamConfig?: IAMAuthorizationConfig;
+
+  /**
+   * Cognito Identity Pool config, required if an 'identityPool' auth provider is specified in the Api.
+   * Applies to 'public' and 'private' auth strategies.
+   */
+  readonly identityPoolConfig?: IdentityPoolAuthorizationConfig;
 
   /**
    * Cognito UserPool config, required if a 'userPools' auth provider is specified in the Api.
@@ -234,8 +285,14 @@ export type ConflictResolutionStrategy =
 
 /**
  * Project level configuration for conflict resolution.
+ * @deprecated use DataStoreConfiguration instead.
  */
-export interface ConflictResolution {
+export interface ConflictResolution extends DataStoreConfiguration {}
+
+/**
+ * Project level configuration for DataStore
+ */
+export interface DataStoreConfiguration {
   /**
    * Project-wide config for conflict resolution. Applies to all non-overridden models.
    */
@@ -371,6 +428,12 @@ export interface TranslationBehavior {
   readonly useSubUsernameForDefaultIdentityClaim: boolean;
 
   /**
+   * When enabled, suppresses default behavior of redacting relational fields when auth rules do not exactly match.
+   * @default false
+   */
+  readonly subscriptionsInheritPrimaryAuth: boolean;
+
+  /**
    * Ensure that the owner field is still populated even if a static iam or group authorization applies.
    * @default true
    */
@@ -464,6 +527,12 @@ export interface PartialTranslationBehavior {
    * @default true
    */
   readonly useSubUsernameForDefaultIdentityClaim?: boolean;
+
+  /**
+   * When enabled, suppresses default behavior of redacting relational fields when auth rules do not exactly match.
+   * @default false
+   */
+  readonly subscriptionsInheritPrimaryAuth?: boolean;
 
   /**
    * Ensure that the owner field is still populated even if a static iam or group authorization applies.
@@ -636,6 +705,7 @@ export interface AmplifyGraphqlApiProps {
   /**
    * Configure conflict resolution on the Api, which is required to enable DataStore Api functionality.
    * For more information, refer to https://docs.amplify.aws/lib/datastore/getting-started/q/platform/js/
+   * @deprecated use dataStoreConfiguration instead.
    */
   readonly conflictResolution?: ConflictResolution;
 
@@ -676,6 +746,12 @@ export interface AmplifyGraphqlApiProps {
    * Strategy to store construct outputs. If no outputStorageStrategey is provided a default strategy will be used.
    */
   readonly outputStorageStrategy?: IBackendOutputStorageStrategy;
+
+  /**
+   * Configure DataStore conflict resolution on the Api. Conflict resolution is required to enable DataStore Api functionality.
+   * For more information, refer to https://docs.amplify.aws/lib/datastore/getting-started/q/platform/js/
+   */
+  readonly dataStoreConfiguration?: DataStoreConfiguration;
 }
 
 /**
@@ -719,6 +795,11 @@ export interface AmplifyGraphqlApiCfnResources {
   readonly cfnTables: Record<string, CfnTable>;
 
   /**
+   * The Generated Amplify DynamoDb Table L1 resource wrapper, keyed by model type name.
+   */
+  readonly amplifyDynamoDbTables: Record<string, AmplifyDynamoDbTableWrapper>;
+
+  /**
    * The Generated IAM Role L1 Resources, keyed by logicalId.
    */
   readonly cfnRoles: Record<string, CfnRole>;
@@ -748,11 +829,6 @@ export interface AmplifyGraphqlApiResources {
    * The Generated DynamoDB Table L2 Resources, keyed by logicalId.
    */
   readonly tables: Record<string, ITable>;
-
-  /**
-   * The Generated Amplify DynamoDb Table wrapped if produced, keyed by name.
-   */
-  readonly amplifyDynamoDbTables: Record<string, AmplifyDynamoDbTableWrapper>;
 
   /**
    * The Generated IAM Role L2 Resources, keyed by logicalId.

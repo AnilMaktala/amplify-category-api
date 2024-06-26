@@ -3,6 +3,58 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.22.4](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.22.3...amplify-category-api-e2e-tests@3.22.4) (2024-06-25)
+
+**Note:** Version bump only for package amplify-category-api-e2e-tests
+
+## [3.22.3](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.22.2...amplify-category-api-e2e-tests@3.22.3) (2024-05-15)
+
+**Note:** Version bump only for package amplify-category-api-e2e-tests
+
+## [3.22.2](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.22.1...amplify-category-api-e2e-tests@3.22.2) (2024-05-10)
+
+**Note:** Version bump only for package amplify-category-api-e2e-tests
+
+## [3.22.1](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.22.0...amplify-category-api-e2e-tests@3.22.1) (2024-05-01)
+
+**Note:** Version bump only for package amplify-category-api-e2e-tests
+
+# [3.22.0](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.21.1...amplify-category-api-e2e-tests@3.22.0) (2024-04-26)
+
+### Features
+
+- deprecate iam auth provider and rename it to identityPool ([#2320](https://github.com/aws-amplify/amplify-category-api/issues/2320)) ([#2394](https://github.com/aws-amplify/amplify-category-api/issues/2394)) ([383985b](https://github.com/aws-amplify/amplify-category-api/commit/383985ba20dcb04acada10593f8398b7dae79190))
+
+## [3.21.1](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.21.0...amplify-category-api-e2e-tests@3.21.1) (2024-04-16)
+
+### Bug Fixes
+
+- **api:** protect sql relational fields when using owner rule ([#2463](https://github.com/aws-amplify/amplify-category-api/issues/2463)) ([53cabe2](https://github.com/aws-amplify/amplify-category-api/commit/53cabe2316a32c5cc6e2f9522d82aa92fd5c0689))
+
+# [3.21.0](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.20.3...amplify-category-api-e2e-tests@3.21.0) (2024-04-11)
+
+### Features
+
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+## [3.20.3](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.20.2...amplify-category-api-e2e-tests@3.20.3) (2024-03-28)
+
+**Note:** Version bump only for package amplify-category-api-e2e-tests
+
+## [3.20.2](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.20.1...amplify-category-api-e2e-tests@3.20.2) (2024-03-13)
+
+### Bug Fixes
+
+- field auth resolver to use "validateUsingSource" auth util method ([#2170](https://github.com/aws-amplify/amplify-category-api/issues/2170)) ([b344d0d](https://github.com/aws-amplify/amplify-category-api/commit/b344d0d3b4b0ad430dd3572954b2e93ea887b28d))
+- **rds:** userpool & iam e2e tests ([#2238](https://github.com/aws-amplify/amplify-category-api/issues/2238)) ([52726b3](https://github.com/aws-amplify/amplify-category-api/commit/52726b30889a69c0031f04f0f4c915b3ae1e381c))
+
+## [3.20.1](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.20.0...amplify-category-api-e2e-tests@3.20.1) (2024-02-28)
+
+### Bug Fixes
+
+- **api:** clean stale cdk amplify table roles ([#2249](https://github.com/aws-amplify/amplify-category-api/issues/2249)) ([b7cd81d](https://github.com/aws-amplify/amplify-category-api/commit/b7cd81d763e17eb31d6f4fc0dde8391fe0579d8f))
+- cleanup script to run in all regions ([1a04aa7](https://github.com/aws-amplify/amplify-category-api/commit/1a04aa70dec5c105d0801e74ba6ad3061ca63006))
+
 # [3.20.0](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-e2e-tests@3.19.4...amplify-category-api-e2e-tests@3.20.0) (2024-02-05)
 
 ### Features

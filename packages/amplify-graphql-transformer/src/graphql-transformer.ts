@@ -27,6 +27,7 @@ import {
 import type {
   DataSourceStrategiesProvider,
   RDSLayerMappingProvider,
+  RDSSNSTopicMappingProvider,
   TransformParameters,
 } from '@aws-amplify/graphql-transformer-interfaces';
 import { GraphQLTransform, ResolverConfig, UserDefinedSlot } from '@aws-amplify/graphql-transformer-core';
@@ -61,6 +62,7 @@ export const constructTransformerChain = (options?: TransformerFactoryArgs): Tra
   const indexTransformer = new IndexTransformer();
   const hasOneTransformer = new HasOneTransformer();
 
+  // The default list of transformers should match DefaultDirectives in packages/amplify-graphql-directives/src/index.ts
   return [
     modelTransformer,
     new FunctionTransformer(options?.functionNameMap),
@@ -104,7 +106,8 @@ export const constructTransform = (config: TransformConfig): GraphQLTransform =>
 
 export type ExecuteTransformConfig = TransformConfig &
   DataSourceStrategiesProvider &
-  RDSLayerMappingProvider & {
+  RDSLayerMappingProvider &
+  RDSSNSTopicMappingProvider & {
     schema: string;
     printTransformerLog?: (log: TransformerLog) => void;
     scope: Construct;
@@ -150,6 +153,7 @@ export const executeTransform = (config: ExecuteTransformConfig): void => {
     parameterProvider,
     printTransformerLog,
     rdsLayerMapping,
+    rdsSnsTopicMapping,
     schema,
     scope,
     sqlDirectiveDataSourceStrategies,
@@ -165,6 +169,7 @@ export const executeTransform = (config: ExecuteTransformConfig): void => {
       nestedStackProvider,
       parameterProvider,
       rdsLayerMapping,
+      rdsSnsTopicMapping,
       schema,
       scope,
       sqlDirectiveDataSourceStrategies,

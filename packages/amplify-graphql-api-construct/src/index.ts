@@ -4,6 +4,7 @@
  */
 export type {
   IAMAuthorizationConfig,
+  IdentityPoolAuthorizationConfig,
   UserPoolAuthorizationConfig,
   OIDCAuthorizationConfig,
   ApiKeyAuthorizationConfig,
@@ -20,6 +21,7 @@ export type {
   FunctionSlot,
   FunctionSlotOverride,
   ConflictResolution,
+  DataStoreConfiguration,
   ConflictDetectionType,
   OptimisticConflictResolutionStrategy,
   CustomConflictResolutionStrategy,

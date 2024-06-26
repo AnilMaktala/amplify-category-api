@@ -45,6 +45,7 @@ import { NestedStack } from 'aws-cdk-lib';
 import { NoneDataSource } from 'aws-cdk-lib/aws-appsync';
 import { OpenSearchDataSource } from 'aws-cdk-lib/aws-appsync';
 import { RdsDataSource } from 'aws-cdk-lib/aws-appsync';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Resolver } from 'aws-cdk-lib/aws-appsync';
 import { StreamViewType } from 'aws-cdk-lib/aws-dynamodb';
 
@@ -70,6 +71,7 @@ export interface AmplifyDynamoDbModelDataSourceStrategy {
 // @public
 export class AmplifyDynamoDbTableWrapper {
     constructor(resource: CfnResource);
+    applyRemovalPolicy(policy: RemovalPolicy): void;
     set billingMode(billingMode: BillingMode);
     set deletionProtectionEnabled(deletionProtectionEnabled: boolean);
     static isAmplifyDynamoDbTableResource(x: any): x is CfnResource;
@@ -106,6 +108,7 @@ export class AmplifyGraphqlApi extends Construct {
 // @public
 export interface AmplifyGraphqlApiCfnResources {
     readonly additionalCfnResources: Record<string, CfnResource>;
+    readonly amplifyDynamoDbTables: Record<string, AmplifyDynamoDbTableWrapper>;
     readonly cfnApiKey?: CfnApiKey;
     readonly cfnDataSources: Record<string, CfnDataSource>;
     readonly cfnFunctionConfigurations: Record<string, CfnFunctionConfiguration>;
@@ -121,7 +124,9 @@ export interface AmplifyGraphqlApiCfnResources {
 export interface AmplifyGraphqlApiProps {
     readonly apiName?: string;
     readonly authorizationModes: AuthorizationModes;
+    // @deprecated
     readonly conflictResolution?: ConflictResolution;
+    readonly dataStoreConfiguration?: DataStoreConfiguration;
     readonly definition: IAmplifyGraphqlDefinition;
     readonly functionNameMap?: Record<string, IFunction>;
     readonly functionSlots?: FunctionSlot[];
@@ -134,7 +139,6 @@ export interface AmplifyGraphqlApiProps {
 
 // @public
 export interface AmplifyGraphqlApiResources {
-    readonly amplifyDynamoDbTables: Record<string, AmplifyDynamoDbTableWrapper>;
     readonly cfnResources: AmplifyGraphqlApiCfnResources;
     readonly functions: Record<string, IFunction>;
     readonly graphqlApi: IGraphqlApi;
@@ -163,6 +167,7 @@ export interface AuthorizationModes {
     readonly apiKeyConfig?: ApiKeyAuthorizationConfig;
     readonly defaultAuthorizationMode?: 'AWS_IAM' | 'AMAZON_COGNITO_USER_POOLS' | 'OPENID_CONNECT' | 'API_KEY' | 'AWS_LAMBDA';
     readonly iamConfig?: IAMAuthorizationConfig;
+    readonly identityPoolConfig?: IdentityPoolAuthorizationConfig;
     readonly lambdaConfig?: LambdaAuthorizationConfig;
     readonly oidcConfig?: OIDCAuthorizationConfig;
     readonly userPoolConfig?: UserPoolAuthorizationConfig;
@@ -176,10 +181,8 @@ export interface AutomergeConflictResolutionStrategy extends ConflictResolutionS
 // @public
 export type ConflictDetectionType = 'VERSION' | 'NONE';
 
-// @public
-export interface ConflictResolution {
-    readonly models?: Record<string, ConflictResolutionStrategy>;
-    readonly project?: ConflictResolutionStrategy;
+// @public @deprecated
+export interface ConflictResolution extends DataStoreConfiguration {
 }
 
 // @public
@@ -201,6 +204,12 @@ export interface CustomSqlDataSourceStrategy {
     readonly fieldName: string;
     readonly strategy: SQLLambdaModelDataSourceStrategy;
     readonly typeName: 'Query' | 'Mutation';
+}
+
+// @public
+export interface DataStoreConfiguration {
+    readonly models?: Record<string, ConflictResolutionStrategy>;
+    readonly project?: ConflictResolutionStrategy;
 }
 
 // @public
@@ -229,10 +238,15 @@ export interface FunctionSlotOverride {
 
 // @public
 export interface IAMAuthorizationConfig {
+    // @deprecated
     readonly allowListedRoles?: (IRole | string)[];
-    readonly authenticatedUserRole: IRole;
-    readonly identityPoolId: string;
-    readonly unauthenticatedUserRole: IRole;
+    // @deprecated
+    readonly authenticatedUserRole?: IRole;
+    readonly enableIamAuthorizationMode?: boolean;
+    // @deprecated
+    readonly identityPoolId?: string;
+    // @deprecated
+    readonly unauthenticatedUserRole?: IRole;
 }
 
 // @public
@@ -253,6 +267,13 @@ export interface IBackendOutputEntry {
 // @public
 export interface IBackendOutputStorageStrategy {
     addBackendOutputEntry(keyName: string, backendOutputEntry: IBackendOutputEntry): void;
+}
+
+// @public
+export interface IdentityPoolAuthorizationConfig {
+    readonly authenticatedUserRole: IRole;
+    readonly identityPoolId: string;
+    readonly unauthenticatedUserRole: IRole;
 }
 
 // @public
@@ -303,6 +324,7 @@ export interface PartialTranslationBehavior {
     readonly sandboxModeEnabled?: boolean;
     readonly secondaryKeyAsGSI?: boolean;
     readonly shouldDeepMergeDirectiveConfigDefaults?: boolean;
+    readonly subscriptionsInheritPrimaryAuth?: boolean;
     readonly suppressApiKeyGeneration?: boolean;
     readonly useSubUsernameForDefaultIdentityClaim?: boolean;
 }
@@ -340,12 +362,29 @@ export class SQLLambdaModelDataSourceStrategyFactory {
 }
 
 // @public
-export interface SqlModelDataSourceDbConnectionConfig {
+export type SqlModelDataSourceDbConnectionConfig = SqlModelDataSourceSecretsManagerDbConnectionConfig | SqlModelDataSourceSsmDbConnectionConfig | SqlModelDataSourceSsmDbConnectionStringConfig;
+
+// @public
+export interface SqlModelDataSourceSecretsManagerDbConnectionConfig {
+    readonly databaseName: string;
+    readonly hostname: string;
+    readonly keyArn?: string;
+    readonly port: number;
+    readonly secretArn: string;
+}
+
+// @public
+export interface SqlModelDataSourceSsmDbConnectionConfig {
     readonly databaseNameSsmPath: string;
     readonly hostnameSsmPath: string;
     readonly passwordSsmPath: string;
     readonly portSsmPath: string;
     readonly usernameSsmPath: string;
+}
+
+// @public
+export interface SqlModelDataSourceSsmDbConnectionStringConfig {
+    readonly connectionUriSsmPath: string | string[];
 }
 
 // @public
@@ -398,6 +437,7 @@ export interface TranslationBehavior {
     readonly sandboxModeEnabled: boolean;
     readonly secondaryKeyAsGSI: boolean;
     readonly shouldDeepMergeDirectiveConfigDefaults: boolean;
+    readonly subscriptionsInheritPrimaryAuth: boolean;
     readonly suppressApiKeyGeneration: boolean;
     readonly useSubUsernameForDefaultIdentityClaim: boolean;
 }

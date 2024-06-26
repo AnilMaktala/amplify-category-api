@@ -1,19 +1,25 @@
+/* eslint-disable prefer-arrow/prefer-arrow-functions */
 import {
-  DynamoDB,
   AttributeDefinition,
   ContinuousBackupsDescription,
   CreateGlobalSecondaryIndexAction,
   CreateTableCommandInput,
+  DescribeTimeToLiveCommandOutput,
+  DynamoDB,
   GlobalSecondaryIndexDescription,
   KeySchemaElement,
   Projection,
+  ResourceNotFoundException,
   TableDescription,
   TimeToLiveDescription,
   UpdateContinuousBackupsCommandInput,
   UpdateTableCommandInput,
   UpdateTimeToLiveCommandInput,
-  ResourceNotFoundException,
 } from '@aws-sdk/client-dynamodb';
+import { OnEventResponse } from '../amplify-table-manager-lambda-types';
+import * as cfnResponse from './cfn-response';
+import { startExecution } from './outbound';
+import { getEnv, log } from './util';
 
 const ddbClient = new DynamoDB();
 
@@ -24,24 +30,99 @@ const notFinished: AWSCDKAsyncCustomResource.IsCompleteResponse = {
   IsComplete: false,
 };
 
+// #region Entry points
+export const onEvent = cfnResponse.safeHandler(onEventHandler);
+export const isComplete = cfnResponse.safeHandler(isCompleteHandler);
 /**
- * Util function to log especially for nested objects and arrays
- * @param msg
- * @param other arrays of arguments to be logged
+ * Handler for requests sent from CloudFormation for custom resource.
+ * This is the entry point of the custom resource.
+ *
+ * Note: This is adapted from the AWS CDK's provider framework.
+ * https://github.com/aws/aws-cdk/blob/11621e7/packages/aws-cdk-lib/custom-resources/lib/provider-framework/runtime/framework.ts
+ * @param cfnRequest Request received from CloudFormation
  */
-const log = (msg: string, ...other: any[]) => {
-  console.log(
-    msg,
-    other.map((o) => (typeof o === 'object' ? JSON.stringify(o, undefined, 2) : o)),
-  );
-};
+// eslint-disable-next-line func-style
+async function onEventHandler(cfnRequest: AWSLambda.CloudFormationCustomResourceEvent): Promise<void> {
+  const sanitizedRequest = { ...cfnRequest, ResponseURL: '[redacted]' } as const;
+  log('onEventHandler', sanitizedRequest);
+
+  cfnRequest.ResourceProperties = cfnRequest.ResourceProperties || {};
+
+  const onEventResult = await processOnEvent(sanitizedRequest);
+  log('onEvent returned:', onEventResult);
+
+  // merge the request and the result from onEvent to form the complete resource event
+  // this also performs validation.
+  const resourceEvent = createResponseEvent(cfnRequest, onEventResult);
+
+  if (cfnRequest.RequestType == 'Delete') {
+    // If the RequestType is `Delete`, we can submit the response to CFN.
+    // There's no need to invoke the waiter state machine.
+    log('Submitting response to CloudFormation');
+    await cfnResponse.submitResponse('SUCCESS', resourceEvent, { noEcho: resourceEvent.NoEcho });
+  } else {
+    // otherwise we start the waiter state machine to invoke
+    // `isComplete` in predefined intervals.
+    const waiter = {
+      stateMachineArn: getEnv('WAITER_STATE_MACHINE_ARN'),
+      name: resourceEvent.RequestId,
+      input: JSON.stringify(resourceEvent),
+    };
+
+    log('starting waiter', {
+      stateMachineArn: waiter.stateMachineArn,
+      name: resourceEvent.RequestId,
+    });
+
+    await startExecution(waiter);
+  }
+}
 
 /**
- * OnEvent handler to process the CFN event, including `Create`, `Update` and `Delete`
+ * Handler for state machine events polling completion status of resource modification.
+ *
+ * Note: This is adapted from the AWS CDK's provider framework.
+ * https://github.com/aws/aws-cdk/blob/11621e7/packages/aws-cdk-lib/custom-resources/lib/provider-framework/runtime/framework.ts
+ * @param event isComplete request received from Waiter State Machine.
+ */
+// eslint-disable-next-line func-style
+async function isCompleteHandler(event: AWSCDKAsyncCustomResource.IsCompleteRequest): Promise<void> {
+  const sanitizedRequest = { ...event, ResponseURL: '[redacted]' } as const;
+  log('isComplete', sanitizedRequest);
+
+  const isCompleteResult = await processIsComplete(sanitizedRequest);
+  log('isComplete result', isCompleteResult);
+
+  // if we are not complete, return false, and don't send a response back.
+  if (!isCompleteResult.IsComplete) {
+    if (isCompleteResult.Data && Object.keys(isCompleteResult.Data).length > 0) {
+      throw new Error('"Data" is not allowed if "IsComplete" is "False"');
+    }
+
+    // This must be the full event, it will be deserialized in `onTimeout` to send the response to CloudFormation
+    throw new cfnResponse.Retry(JSON.stringify(event));
+  }
+
+  const response = {
+    ...event,
+    ...isCompleteResult,
+    Data: {
+      ...event.Data,
+      ...isCompleteResult.Data,
+    },
+  };
+
+  await cfnResponse.submitResponse('SUCCESS', response, { noEcho: event.NoEcho });
+}
+// #endregion Entry Points
+
+// #region Resource Modification Logic
+/**
+ * Resource modification logic for OnEvent handler to process the CFN event, including `Create`, `Update` and `Delete`
  * @param event CFN event
  * @returns Response object which is sent back to CFN
  */
-export const onEvent = async (event: AWSCDKAsyncCustomResource.OnEventRequest): Promise<AWSCDKAsyncCustomResource.OnEventResponse> => {
+const processOnEvent = async (event: AWSCDKAsyncCustomResource.OnEventRequest): Promise<AWSCDKAsyncCustomResource.OnEventResponse> => {
   console.log({ ...event, ResponseURL: '[redacted]' });
   const tableDef = extractTableInputFromEvent(event);
   console.log('Input table state: ', tableDef);
@@ -67,6 +148,7 @@ export const onEvent = async (event: AWSCDKAsyncCustomResource.OnEventRequest): 
       if (!event.PhysicalResourceId) {
         throw new Error(`Could not find the physical ID for the updated resource`);
       }
+      const oldTableDef = extractOldTableInputFromEvent(event);
       console.log('Fetching current table state');
       const describeTableResult = await ddbClient.describeTable({ TableName: event.PhysicalResourceId });
       if (!describeTableResult.Table) {
@@ -150,24 +232,26 @@ export const onEvent = async (event: AWSCDKAsyncCustomResource.OnEventRequest): 
       }
 
       // determine if ttl is changed -> describeTimeToLive & updateTimeToLive
-      const describeTimeToLiveResult = await ddbClient.describeTimeToLive({ TableName: event.PhysicalResourceId });
-      console.log('Current TTL: ', describeTimeToLiveResult);
-      const ttlUpdate = getTtlUpdate(describeTimeToLiveResult.TimeToLiveDescription, tableDef);
-      if (ttlUpdate) {
-        log('Computed time to live update', ttlUpdate);
-        console.log('Initiating TTL update');
-        await ddbClient.updateTimeToLive(ttlUpdate);
-        // TTL update could take more than 15 mins which exceeds lambda timeout
-        // Return the result instead of waiting here
-        result = {
-          PhysicalResourceId: event.PhysicalResourceId,
-          Data: {
-            TableArn: describeTableResult.Table.TableArn,
-            TableStreamArn: describeTableResult.Table.LatestStreamArn,
-            TableName: describeTableResult.Table.TableName,
-          },
-        };
-        return result;
+      if (isTtlModified(oldTableDef.timeToLiveSpecification, tableDef.timeToLiveSpecification)) {
+        const describeTimeToLiveResult = await getTtlStatus(event.PhysicalResourceId);
+        console.log('Current TTL: ', describeTimeToLiveResult);
+        const ttlUpdate = getTtlUpdate(describeTimeToLiveResult.TimeToLiveDescription, tableDef);
+        if (ttlUpdate) {
+          log('Computed time to live update', ttlUpdate);
+          console.log('Initiating TTL update');
+          await ddbClient.updateTimeToLive(ttlUpdate);
+          // TTL update could take more than 15 mins which exceeds lambda timeout
+          // Return the result instead of waiting here
+          result = {
+            PhysicalResourceId: event.PhysicalResourceId,
+            Data: {
+              TableArn: describeTableResult.Table.TableArn,
+              TableStreamArn: describeTableResult.Table.LatestStreamArn,
+              TableName: describeTableResult.Table.TableName,
+            },
+          };
+          return result;
+        }
       }
 
       // determine GSI updates
@@ -222,7 +306,7 @@ export const onEvent = async (event: AWSCDKAsyncCustomResource.OnEventRequest): 
  * @param event CFN event
  * @returns Response object with `isComplete` bool attribute to indicate the completeness of process
  */
-export const isComplete = async (
+const processIsComplete = async (
   event: AWSCDKAsyncCustomResource.IsCompleteRequest,
 ): Promise<AWSCDKAsyncCustomResource.IsCompleteResponse> => {
   log('got event', { ...event, ResponseURL: '[redacted]' });
@@ -261,12 +345,15 @@ export const isComplete = async (
       return notFinished;
     }
     // Need additional call if ttl is defined
-    const describeTimeToLiveResult = await ddbClient.describeTimeToLive({ TableName: event.PhysicalResourceId });
-    const ttlUpdate = getTtlUpdate(describeTimeToLiveResult.TimeToLiveDescription, endState);
-    if (ttlUpdate) {
-      console.log('Updating table with TTL enabled');
-      await ddbClient.updateTimeToLive(ttlUpdate);
-      return notFinished;
+    // Since this is a create/re-create event, the original table always has TTL disabled. Only update TTL if it is enabled in endstate.
+    if (endState.timeToLiveSpecification && endState.timeToLiveSpecification.enabled) {
+      const describeTimeToLiveResult = await getTtlStatus(event.PhysicalResourceId);
+      const ttlUpdate = getTtlUpdate(describeTimeToLiveResult.TimeToLiveDescription, endState);
+      if (ttlUpdate) {
+        console.log('Updating table with TTL enabled');
+        await ddbClient.updateTimeToLive(ttlUpdate);
+        return notFinished;
+      }
     }
     // no additional updates required on create
     console.log('Create is finished');
@@ -323,6 +410,64 @@ const replaceTable = async (
   };
   log('Returning result', result);
   return result;
+};
+// #endregion Resource Modification Logic
+
+// #region Helpers
+/**
+ * Creates a response event to provide to the state machine
+ *
+ * Note: This is taken from the AWS CDK's provider framework.
+ * https://github.com/aws/aws-cdk/blob/11621e7/packages/aws-cdk-lib/custom-resources/lib/provider-framework/runtime/framework.ts
+ * @param cfnRequest OnEvent request received from CloudFormation
+ * @param onEventResult OnEventResponse received from modifying resource
+ * @returns IsCompleteRequest to pass to state machine -> isComplete flow
+ */
+const createResponseEvent = (
+  cfnRequest: AWSLambda.CloudFormationCustomResourceEvent,
+  onEventResult: OnEventResponse,
+): AWSCDKAsyncCustomResource.IsCompleteRequest => {
+  onEventResult = onEventResult || {};
+  const physicalResourceId = onEventResult.PhysicalResourceId || defaultPhysicalResourceId(cfnRequest);
+
+  if (cfnRequest.RequestType === 'Delete' && physicalResourceId != cfnRequest.PhysicalResourceId) {
+    throw new Error(
+      `DELETE: cannot change the physical resource ID from "${cfnRequest.PhysicalResourceId} to "${onEventResult.PhysicalResourceId}" during deletion"`,
+    );
+  }
+
+  if (cfnRequest.RequestType === 'Update' && physicalResourceId !== cfnRequest.PhysicalResourceId) {
+    log(`UPDATE: changing physical resource ID from "${cfnRequest.PhysicalResourceId}" to "${onEventResult.PhysicalResourceId}"`);
+  }
+
+  return {
+    ...cfnRequest,
+    ...onEventResult,
+    PhysicalResourceId: physicalResourceId,
+  };
+};
+
+/**
+ * Calculates the default physical resource ID based in case handler did not return a PhysicalResourceId.
+ *
+ * For "CREATE", it uses the RequestId.
+ * For "UPDATE" and "DELETE" and returns the current PhysicalResourceId (the one provided in `event`).
+ *
+ * Note: This is taken from the AWS CDK's provider framework.
+ * https://github.com/aws/aws-cdk/blob/11621e7/packages/aws-cdk-lib/custom-resources/lib/provider-framework/runtime/framework.ts
+ */
+const defaultPhysicalResourceId = (req: AWSLambda.CloudFormationCustomResourceEvent): string => {
+  switch (req.RequestType) {
+    case 'Create':
+      return req.RequestId;
+
+    case 'Update':
+    case 'Delete':
+      return req.PhysicalResourceId;
+
+    default:
+      throw new Error(`Invalid "RequestType" in request "${JSON.stringify(req)}"`);
+  }
 };
 
 /**
@@ -392,6 +537,10 @@ const getNextGSIUpdate = (currentState: TableDescription, endState: CustomDDB.In
   const endStateGSIs = endState.globalSecondaryIndexes || [];
   const endStateGSINames = endStateGSIs.map((gsi) => gsi.indexName);
 
+  // Retrieve the attributes whose type has been modified
+  const modifiedAttributes = getTypeModifiedAttributes(currentState.AttributeDefinitions, endState.attributeDefinitions);
+  const indexesWithModifiedAttributeType = getIndexesContainingAttributes(currentState.GlobalSecondaryIndexes, modifiedAttributes);
+
   const currentStateGSIs = currentState.GlobalSecondaryIndexes || [];
   const currentStateGSINames = currentStateGSIs.map((gsi) => gsi.IndexName);
 
@@ -399,6 +548,8 @@ const getNextGSIUpdate = (currentState: TableDescription, endState: CustomDDB.In
   const gsiRequiresReplacementPredicate = (currentGSI: GlobalSecondaryIndexDescription): boolean => {
     // check if the index has been removed entirely
     if (!endStateGSINames.includes(currentGSI.IndexName!)) return true;
+    // check if the index attributes type has been modified
+    if (indexesWithModifiedAttributeType.includes(currentGSI.IndexName!)) return true;
     // get the end state of this GSI
     const respectiveEndStateGSI = endStateGSIs.find((endStateGSI) => endStateGSI.indexName === currentGSI.IndexName)!;
     // detect if projection has changed
@@ -727,6 +878,24 @@ export const extractTableInputFromEvent = (
 };
 
 /**
+ * Extract the old custom DynamoDB table properties from event, during which the service token will be removed
+ * and the string values will be correctly parsed to boolean or number
+ * @param event Event for onEvent or isComplete
+ * @returns The old table input for Custom dynamoDB Table
+ */
+export const extractOldTableInputFromEvent = (
+  event: AWSCDKAsyncCustomResource.OnEventRequest | AWSCDKAsyncCustomResource.IsCompleteRequest,
+): CustomDDB.Input => {
+  // isolate the resource properties from the event and remove the service token
+  const resourceProperties = { ...event.OldResourceProperties } as Record<string, any> & { ServiceToken?: string };
+  delete resourceProperties.ServiceToken;
+
+  // cast the remaining resource properties to the DynamoDB API call input type
+  const tableDef = convertStringToBooleanOrNumber(resourceProperties) as CustomDDB.Input;
+  return tableDef;
+};
+
+/**
  * Parse the properties to the form supported by DynamoDB SDK call, in which the undefined properties will be removed first
  * and then the object keys will be converted to PascalCase
  * @param obj input object
@@ -943,6 +1112,102 @@ const isKeySchemaModified = (currentSchema: Array<KeySchemaElement>, endSchema: 
 };
 
 /**
+ * Util function to get a list of attributes with modified type
+ * @param currentSchema current state of attributes
+ * @param endSchema end state of key attributes
+ * @returns string[] indicates the list of attributes name with modified type
+ */
+const getTypeModifiedAttributes = (
+  currentSchema?: Array<AttributeDefinition>,
+  endSchema?: Array<CustomDDB.AttributeDefinitionProperty>,
+): string[] => {
+  const result: string[] = [];
+  if (!currentSchema || !endSchema) return result;
+  for (const attribute of currentSchema) {
+    const endAttribute = endSchema.find((endAttr) => endAttr.attributeName === attribute.AttributeName);
+    // If an attribute is not found in the end schema, no need to handle it here.
+    // The attribute will be removed once we delete the corresponding GSI.
+    if (!endAttribute) continue;
+    if (attribute.AttributeType !== endAttribute.attributeType) {
+      result.push(attribute.AttributeName!);
+    }
+  }
+  return result;
+};
+
+/**
+ * Util function to get a list of indexes containing the given attributes
+ * @param currentSchema current state of GSIs
+ * @param attributes list of attribute names
+ * @returns string[] indicates the list of index names containing the given attributes
+ */
+const getIndexesContainingAttributes = (
+  currentSchema: Array<GlobalSecondaryIndexDescription> | undefined,
+  attributes: string[],
+): string[] => {
+  if (!currentSchema) return [];
+  const result = currentSchema
+    .filter((index) => index.IndexStatus === 'ACTIVE') // This is important. You do not want to update a GSI that is not active.
+    .filter((index) => index.KeySchema?.some((key) => attributes.includes(key.AttributeName!)))
+    .map((index) => index.IndexName!);
+  return result ?? [];
+};
+
+/**
+ * Util function to check if the time to live is modified between old and new table definitions
+ * @param oldTtl TTL config from old table properties
+ * @param endTtl TTL config from input table properties
+ * @returns boolean indicaes the change of TTL
+ */
+export const isTtlModified = (
+  oldTtl: CustomDDB.TimeToLiveSpecificationProperty | undefined,
+  endTtl: CustomDDB.TimeToLiveSpecificationProperty | undefined,
+): boolean => {
+  if (oldTtl === undefined && endTtl === undefined) {
+    return false;
+  }
+  if (oldTtl === undefined || endTtl === undefined) {
+    return true;
+  }
+  return oldTtl.enabled !== endTtl.enabled || oldTtl.attributeName !== endTtl.attributeName;
+};
+
+/**
+ * Get time to live specification for the given table
+ * @param tableName table name
+ * @returns time to live specification object
+ */
+const getTtlStatus = async (tableName: string): Promise<DescribeTimeToLiveCommandOutput> => {
+  /**
+   * This DescribeTimeToLive API call has a limit rate of 10 RPS.
+   * The call is staggered randomly within 5s and called with exponential retries with max retry of 5.
+   *
+   * The CloudFormation has a hard limit of 2500 resources for nested stack within one operation (CUD).
+   * The average of a model type nested stack is ~40, which indicates a number of 60 models is a reasonable test case.
+   * If there are no staggering, the max retries needed is (60/10)-1=5
+   *
+   * However, in the worst case without staggering, the total wait time will come to pow(2, 5)-1=31s
+   * When there is staggering with 5s applied, in the ideal case, 10 APIs are called per second and no exponential backoff will occur,
+   * which only adds additional 5s
+   *
+   * The final approach is to combine both exponential backoff and initial random delay considering the tradeoffs mentioned
+   */
+  const initialDelay = Math.floor(Math.random() * 5 * 1000); // between 0 to 5s
+  console.log(`Waiting for ${initialDelay} ms`);
+  await sleep(initialDelay);
+  const describeTimeToLiveResult = retry(
+    async () => await ddbClient.describeTimeToLive({ TableName: tableName }),
+    () => true,
+    {
+      times: 5,
+      delayMS: 1000,
+      exponentialBackoff: true,
+    },
+  );
+  return describeTimeToLiveResult;
+};
+
+/**
  * Configuration for retry limits
  */
 type RetrySettings = {
@@ -950,6 +1215,7 @@ type RetrySettings = {
   delayMS: number; // delay between each attempt to execute func (there is no initial delay)
   timeoutMS: number; // total amount of time to retry execution
   stopOnError: boolean; // if retries should stop if func throws an error
+  exponentialBackoff: boolean; // if retries should be executed based on exponential backoff
 };
 
 const defaultSettings: RetrySettings = {
@@ -957,6 +1223,7 @@ const defaultSettings: RetrySettings = {
   delayMS: 1000 * 15, // 15 seconds
   timeoutMS: 1000 * 60 * 14, // 14 minutes
   stopOnError: false, // terminate the retries if a func calls throws an exception
+  exponentialBackoff: false, // retries are executed based on the same interval
 };
 
 /**
@@ -972,7 +1239,7 @@ const retry = async <T>(
   settings?: Partial<RetrySettings>,
   failurePredicate?: (res?: T) => boolean,
 ): Promise<T> => {
-  const { times, delayMS, timeoutMS, stopOnError } = {
+  const { times, delayMS, timeoutMS, stopOnError, exponentialBackoff } = {
     ...defaultSettings,
     ...settings,
   };
@@ -1002,7 +1269,8 @@ const retry = async <T>(
       terminate = stopOnError;
     }
     count++;
-    await sleep(delayMS);
+    const sleepTime = exponentialBackoff ? delayMS * Math.pow(2, count - 1) : delayMS;
+    await sleep(sleepTime);
   } while (!terminate && count <= times && Date.now() - startTime < timeoutMS);
 
   throw new Error('Retry-able function did not match predicate within the given retry constraints');
@@ -1014,3 +1282,4 @@ const retry = async <T>(
  * @returns void
  */
 const sleep = async (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
+// #endregion Helpers

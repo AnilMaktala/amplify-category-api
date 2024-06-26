@@ -10,6 +10,12 @@ import {
   isSqlModel,
   getModelDataSourceNameForTypeName,
   isModelType,
+  getFilterInputName,
+  getConditionInputName,
+  getSubscriptionFilterInputName,
+  getConnectionName,
+  InputFieldWrapper,
+  isDynamoDbModel,
 } from '@aws-amplify/graphql-transformer-core';
 import {
   DataSourceProvider,
@@ -42,6 +48,7 @@ import {
   getBaseType,
   makeDirective,
   makeField,
+  makeInputValueDefinition,
   makeNamedType,
   ResourceConstants,
   ModelResourceIDs,
@@ -56,6 +63,7 @@ import {
   getSortKeyConnectionAttributeName,
   getObjectPrimaryKey,
 } from '@aws-amplify/graphql-relational-transformer';
+import { AuthDirective } from '@aws-amplify/graphql-directives';
 import { AccessControlMatrix } from './accesscontrol';
 import {
   AUTH_PROVIDER_DIRECTIVE_MAP,
@@ -68,7 +76,6 @@ import {
   MODEL_OPERATIONS,
   SEARCHABLE_AGGREGATE_TYPES,
   AuthRule,
-  authDirectiveDefinition,
   ConfiguredAuthProviders,
   getConfiguredAuthProviders,
   collectFieldNames,
@@ -93,8 +100,17 @@ import {
   hasRelationalDirective,
   getAuthDirectiveRules,
   READ_MODEL_OPERATIONS,
+  isAuthProviderEqual,
+  isFieldRoleHavingAccessToBothSide,
+  isDynamicAuthOrCustomAuth,
+  isIdenticalAuthRole,
 } from './utils';
-import { defaultIdentityClaimWarning, ownerCanReassignWarning, ownerFieldCaseWarning } from './utils/warnings';
+import {
+  defaultIdentityClaimWarning,
+  deprecatedIAMProviderWarning,
+  ownerCanReassignWarning,
+  ownerFieldCaseWarning,
+} from './utils/warnings';
 import { DDBAuthVTLGenerator } from './vtl-generator/ddb/ddb-vtl-generator';
 import { RDSAuthVTLGenerator } from './vtl-generator/rds/rds-vtl-generator';
 import { AuthVTLGenerator } from './vtl-generator/vtl-generator';
@@ -105,27 +121,29 @@ import { AuthVTLGenerator } from './vtl-generator/vtl-generator';
  * access by the provider.
  */
 const getReadRolesForField = (acm: AccessControlMatrix, readRoles: Array<string>, fieldName: string): Array<string> => {
+  const userPoolsPrivateRole = `${acm.getName()}:userPools:private`;
+  const oidcPrivateRole = `${acm.getName()}:oidc:private`;
   const hasCognitoPrivateRole =
-    readRoles.some((r) => r === 'userPools:private') &&
-    acm.isAllowed('userPools:private', fieldName, 'get') &&
-    acm.isAllowed('userPools:private', fieldName, 'list') &&
-    acm.isAllowed('userPools:private', fieldName, 'sync') &&
-    acm.isAllowed('userPools:private', fieldName, 'search') &&
-    acm.isAllowed('userPools:private', fieldName, 'listen');
+    readRoles.some((r) => r === userPoolsPrivateRole) &&
+    acm.isAllowed(userPoolsPrivateRole, fieldName, 'get') &&
+    acm.isAllowed(userPoolsPrivateRole, fieldName, 'list') &&
+    acm.isAllowed(userPoolsPrivateRole, fieldName, 'sync') &&
+    acm.isAllowed(userPoolsPrivateRole, fieldName, 'search') &&
+    acm.isAllowed(userPoolsPrivateRole, fieldName, 'listen');
   const hasOIDCPrivateRole =
-    readRoles.some((r) => r === 'oidc:private') &&
-    acm.isAllowed('oidc:private', fieldName, 'get') &&
-    acm.isAllowed('oidc:private', fieldName, 'list') &&
-    acm.isAllowed('oidc:private', fieldName, 'sync') &&
-    acm.isAllowed('oidc:private', fieldName, 'search') &&
-    acm.isAllowed('oidc:private', fieldName, 'listen');
+    readRoles.some((r) => r === oidcPrivateRole) &&
+    acm.isAllowed(oidcPrivateRole, fieldName, 'get') &&
+    acm.isAllowed(oidcPrivateRole, fieldName, 'list') &&
+    acm.isAllowed(oidcPrivateRole, fieldName, 'sync') &&
+    acm.isAllowed(oidcPrivateRole, fieldName, 'search') &&
+    acm.isAllowed(oidcPrivateRole, fieldName, 'listen');
   let allowedRoles = [...readRoles];
 
   if (hasCognitoPrivateRole) {
-    allowedRoles = allowedRoles.filter((r) => !(r.startsWith('userPools:') && r !== 'userPools:private'));
+    allowedRoles = allowedRoles.filter((r) => !(r.startsWith(`${acm.getName()}:userPools:`) && r !== userPoolsPrivateRole));
   }
   if (hasOIDCPrivateRole) {
-    allowedRoles = allowedRoles.filter((r) => !(r.startsWith('oidc:') && r !== 'oidc:private'));
+    allowedRoles = allowedRoles.filter((r) => !(r.startsWith(`${acm.getName()}:oidc:`) && r !== oidcPrivateRole));
   }
   return allowedRoles;
 };
@@ -174,7 +192,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
    * constructor for creating AuthTransformer
    */
   constructor() {
-    super('amplify-auth-transformer', authDirectiveDefinition);
+    super('amplify-auth-transformer', AuthDirective.definition);
     this.modelDirectiveConfig = new Map();
     this.seenNonModelTypes = new Map();
     this.authModelConfig = new Map();
@@ -235,6 +253,10 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     const reassignWarning = ownerCanReassignWarning(this.authModelConfig);
     if (reassignWarning) {
       this.warn(reassignWarning.message);
+    }
+    const iamProviderWarning = deprecatedIAMProviderWarning(this.rules);
+    if (iamProviderWarning) {
+      this.warn(iamProviderWarning);
     }
   };
 
@@ -334,8 +356,41 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     this.authModelConfig.forEach((acm, modelName) => {
       const def = context.output.getObject(modelName)!;
       const modelHasSearchable = def.directives.some((dir) => dir.name.value === 'searchable');
+      const ownerFields = getOwnerFields(acm);
+      if (isDynamoDbModel(context, modelName)) {
+        const filterInput = context.output.getInput(getFilterInputName(modelName));
+        if (filterInput) {
+          const updatedFilterInput = { ...filterInput, fields: [...filterInput.fields] };
+          ownerFields.forEach((ownerField) => {
+            if (!filterInput.fields.some((field) => field.name.value === ownerField)) {
+              updatedFilterInput.fields.push(makeInputValueDefinition(ownerField, makeNamedType('ModelStringInput')));
+            }
+          });
+          context.output.updateInput(updatedFilterInput);
+        }
+        const conditionInput = context.output.getInput(getConditionInputName(modelName));
+        if (conditionInput) {
+          const updatedConditionInput = { ...conditionInput, fields: [...conditionInput.fields] };
+          ownerFields.forEach((ownerField) => {
+            if (!conditionInput.fields.some((field) => field.name.value === ownerField)) {
+              updatedConditionInput.fields.push(makeInputValueDefinition(ownerField, makeNamedType('ModelStringInput')));
+            }
+          });
+          context.output.updateInput(updatedConditionInput);
+        }
+        const subscriptionFilterInput = context.output.getInput(getSubscriptionFilterInputName(modelName));
+        if (subscriptionFilterInput) {
+          const updatedSubscriptionFilterInput = { ...subscriptionFilterInput, fields: [...subscriptionFilterInput.fields] };
+          ownerFields.forEach((ownerField) => {
+            if (!subscriptionFilterInput.fields.some((field) => field.name.value === ownerField)) {
+              updatedSubscriptionFilterInput.fields.push(makeInputValueDefinition(ownerField, makeNamedType('ModelStringInput')));
+            }
+          });
+          context.output.updateInput(updatedSubscriptionFilterInput);
+        }
+      }
       // collect ownerFields and them in the model
-      this.addFieldsToObject(context, modelName, getOwnerFields(acm));
+      this.addFieldsToObject(context, modelName, ownerFields);
       // Get the directives we need to add to the GraphQL nodes
       const providers = this.getAuthProviders(acm.getRoles());
       const addDefaultIfNeeded = providers.length === 0 ? this.configuredAuthProviders.shouldAddDefaultServiceDirective : false;
@@ -421,7 +476,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
           errorFields.push(field.name.value);
         }
         if (hasRelationalDirective(field)) {
-          this.protectRelationalResolver(context, def, modelName, field, needsFieldResolver ? allowedRoles : null);
+          this.protectRelationalResolver(context, def, modelName, field, allowedRoles, needsFieldResolver);
         } else if (needsFieldResolver) {
           this.protectFieldResolver(context, def, modelName, field.name.value, allowedRoles);
         }
@@ -493,7 +548,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
         .getRoles()
         .map((role) => this.roleMap.get(role))
         .forEach((role) => {
-          if (!role.static && (role.provider === 'userPools' || role.provider === 'oidc')) {
+          if (!role.static && (isAuthProviderEqual(role.provider, 'userPools') || isAuthProviderEqual(role.provider, 'oidc'))) {
             removeSubscriptionFilterInputAttribute(context, modelName, role.entity);
           }
         });
@@ -664,13 +719,22 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     def: ObjectTypeDefinitionNode,
     typeName: string,
     field: FieldDefinitionNode,
-    fieldRoles: Array<string> | null,
+    fieldRoles: Array<string>,
+    needsFieldResolver: boolean = false,
   ): void => {
     let fieldAuthExpression: string;
     let relatedAuthExpression: string;
+    // Relational field redaction is default to `needsFieldResolver`, which stays consistent with current behavior of always redacting relational field when field resolver is needed
+    let redactRelationalField: boolean = needsFieldResolver;
+    const fieldIsRequired = field.type.kind === Kind.NON_NULL_TYPE;
+    if (fieldIsRequired) {
+      redactRelationalField = false;
+    }
     const relatedModelObject = this.getRelatedModelObject(ctx, getBaseType(field.type));
-    if (this.authModelConfig.has(relatedModelObject.name.value)) {
-      const acm = this.authModelConfig.get(relatedModelObject.name.value);
+    const relatedModelName = relatedModelObject.name.value;
+    if (this.authModelConfig.has(relatedModelName)) {
+      const acm = this.authModelConfig.get(relatedModelName);
+      // Get read roles and definitions for related model
       const roleDefinitions = [
         ...new Set([
           ...acm.getRolesPerOperation('get'),
@@ -680,7 +744,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
           ...acm.getRolesPerOperation('listen'),
         ]),
       ].map((r) => this.roleMap.get(r)!);
-      relatedAuthExpression = this.getVtlGenerator(ctx, def.name.value).generateAuthExpressionForRelationQuery(
+      relatedAuthExpression = this.getVtlGenerator(ctx, relatedModelName).generateAuthExpressionForRelationQuery(
         ctx,
         def,
         field,
@@ -689,21 +753,59 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
         roleDefinitions,
         relatedModelObject.fields ?? [],
       );
+
+      // When the default redaction is false, it means no field resolver is involved
+      // Need the additional check on model level auth rules of both sides to determine the relational field redaction
+      // do not redact relational field when required
+      // appsync will throw an error if trying to nullify a required field
+      if (!fieldIsRequired && !redactRelationalField) {
+        let filteredRelatedModelReadRoleDefinitions = roleDefinitions;
+        // When userpool private roles are detected, filter out the non-private userpool roles
+        if (filteredRelatedModelReadRoleDefinitions.some((r) => r.provider === 'userPools' && r.strategy === 'private')) {
+          filteredRelatedModelReadRoleDefinitions = filteredRelatedModelReadRoleDefinitions.filter(
+            (r) => !(r.provider === 'userPools' && r.strategy !== 'private'),
+          );
+        }
+        // When oidc private roles are detected, filter out the non-private oidc roles
+        if (filteredRelatedModelReadRoleDefinitions.some((r) => r.provider === 'oidc' && r.strategy === 'private')) {
+          filteredRelatedModelReadRoleDefinitions = filteredRelatedModelReadRoleDefinitions.filter(
+            (r) => !(r.provider === 'oidc' && r.strategy !== 'private'),
+          );
+        }
+        // relational field read roles are already processed with filter in parent call
+        const fieldReadRoleDefinitions = fieldRoles.map((r) => this.roleMap.get(r)!);
+        /**
+         * Loop through the field read role
+         * Once there is one role detected to have access on both side, the auth role definitions will be compared to determine whether
+         * to redac the field or not
+         */
+        for (let fieldRole of fieldReadRoleDefinitions) {
+          // When two role definitions have an overlap
+          if (isFieldRoleHavingAccessToBothSide(fieldRole, filteredRelatedModelReadRoleDefinitions)) {
+            // Check if two role definitions are identical without dynamic auth role or custom auth role
+            // If not, redact the relational field
+            const isIdenticalRoleDefinitions =
+              fieldReadRoleDefinitions.length === filteredRelatedModelReadRoleDefinitions.length &&
+              filteredRelatedModelReadRoleDefinitions.every((relatedRole) => {
+                return fieldReadRoleDefinitions.some((fr) => isIdenticalAuthRole(fr, relatedRole) && !isDynamicAuthOrCustomAuth(fr));
+              });
+            redactRelationalField = !isIdenticalRoleDefinitions;
+            break;
+          }
+        }
+      }
     } else {
-      // if the related @model does not have auth we need to add a sandbox mode expression
-      relatedAuthExpression = this.getVtlGenerator(ctx, def.name.value).generateSandboxExpressionForField(
+      // if the related @model does not have auth we need to add a post auth expression
+      relatedAuthExpression = this.getVtlGenerator(ctx, def.name.value).generatePostAuthExpressionForField(
         ctx.transformParameters.sandboxModeEnabled,
+        ctx.synthParameters.enableIamAccess,
       );
     }
+
     // if there is field auth on the relational query then we need to add field auth read rules first
     // in the request we then add the rules of the related type
-    if (fieldRoles) {
+    if (needsFieldResolver) {
       const roleDefinitions = fieldRoles.map((r) => this.roleMap.get(r)!);
-      const hasSubsEnabled = this.modelDirectiveConfig.get(typeName)!.subscriptions?.level === 'on';
-      relatedAuthExpression = `${this.getVtlGenerator(ctx, def.name.value).setDeniedFieldFlag(
-        'Mutation',
-        hasSubsEnabled,
-      )}\n${relatedAuthExpression}`;
       fieldAuthExpression = this.getVtlGenerator(ctx, def.name.value).generateAuthExpressionForField(
         this.configuredAuthProviders,
         roleDefinitions,
@@ -711,6 +813,21 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
         undefined,
       );
     }
+
+    /**
+     * An enabled subscription is the prerequisite for relational field redaction
+     */
+    const hasSubsEnabled = this.modelDirectiveConfig.get(typeName) && this.modelDirectiveConfig.get(typeName).subscriptions?.level === 'on';
+    if (hasSubsEnabled && redactRelationalField && !ctx.transformParameters.subscriptionsInheritPrimaryAuth) {
+      relatedAuthExpression = `${this.getVtlGenerator(ctx, def.name.value).setDeniedFieldFlag('Mutation', true)}\n${relatedAuthExpression}`;
+    } else if (needsFieldResolver) {
+      /* In this case, the relational field has restricted field-level auth, so we should redact */
+      relatedAuthExpression = `${this.getVtlGenerator(ctx, def.name.value).setDeniedFieldFlag(
+        'Mutation',
+        hasSubsEnabled,
+      )}\n${relatedAuthExpression}`;
+    }
+
     const resolver = ctx.resolvers.getResolver(typeName, field.name.value) as TransformerResolverProvider;
     if (fieldAuthExpression) {
       resolver.addToSlot(
@@ -1025,7 +1142,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
       if (rule.groups && !rule.groupsField) {
         rule.groups.forEach((group) => {
           const groupClaim = rule.groupClaim || DEFAULT_GROUP_CLAIM;
-          const roleName = `${rule.provider}:staticGroup:${group}:${groupClaim}`;
+          const roleName = `${acm.getName()}:${rule.provider}:staticGroup:${group}:${groupClaim}`;
           if (!(roleName in this.roleMap)) {
             this.roleMap.set(roleName, {
               provider: rule.provider!,
@@ -1047,15 +1164,16 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
         let roleDefinition: RoleDefinition;
         switch (rule.provider) {
           case 'apiKey':
-            roleName = 'apiKey:public';
+            roleName = `${acm.getName()}:apiKey:public`;
             roleDefinition = { provider: rule.provider, strategy: rule.allow, static: true };
             break;
           case 'function':
-            roleName = 'function:custom';
+            roleName = `${acm.getName()}:function:custom`;
             roleDefinition = { provider: rule.provider, strategy: rule.allow, static: true };
             break;
           case 'iam':
-            roleName = `iam:${rule.allow}`;
+          case 'identityPool':
+            roleName = `${acm.getName()}:iam:${rule.allow}`;
             roleDefinition = {
               provider: rule.provider,
               strategy: rule.allow,
@@ -1070,7 +1188,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
               const groupsField = rule.groupsField || DEFAULT_GROUPS_FIELD;
               const fieldType = (context.output.getType(acm.getName()) as any).fields.find((f) => f.name.value === groupsField);
               const isGroupFieldList = fieldType ? isListType(fieldType.type) : false;
-              roleName = `${rule.provider}:dynamicGroup:${groupsField}:${groupClaim}`;
+              roleName = `${acm.getName()}:${rule.provider}:dynamicGroup:${groupsField}:${groupClaim}`;
               roleDefinition = {
                 provider: rule.provider,
                 strategy: rule.allow,
@@ -1085,7 +1203,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
               const isOwnerFieldList = fieldType ? isListType(fieldType.type) : false;
               const useSub = context.transformParameters.useSubUsernameForDefaultIdentityClaim;
               const ownerClaim = rule.identityClaim || (useSub ? DEFAULT_UNIQUE_IDENTITY_CLAIM : DEFAULT_IDENTITY_CLAIM);
-              roleName = `${rule.provider}:owner:${ownerField}:${ownerClaim}`;
+              roleName = `${acm.getName()}:${rule.provider}:owner:${ownerField}:${ownerClaim}`;
               roleDefinition = {
                 provider: rule.provider,
                 strategy: rule.allow,
@@ -1095,7 +1213,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
                 isEntityList: isOwnerFieldList,
               };
             } else if (rule.allow === 'private') {
-              roleName = `${rule.provider}:${rule.allow}`;
+              roleName = `${acm.getName()}:${rule.provider}:${rule.allow}`;
               roleDefinition = {
                 provider: rule.provider,
                 strategy: rule.allow,
@@ -1108,7 +1226,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
           default:
             throw new TransformerContractError(`Could not create a role from ${JSON.stringify(rule)}`);
         }
-        if (!(roleName in this.roleMap)) {
+        if (!this.roleMap.has(roleName)) {
           this.roleMap.set(roleName, roleDefinition);
         }
         acm.setRole({
@@ -1123,7 +1241,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
 
   private doesTypeHaveRulesForOperation(acm: AccessControlMatrix, operation: ModelOperation): boolean {
     const rolesHasDefaultProvider = (roles: Array<string>): boolean =>
-      roles.some((r) => this.roleMap.get(r)!.provider! === this.configuredAuthProviders.default);
+      roles.some((r) => isAuthProviderEqual(this.roleMap.get(r)!.provider!, this.configuredAuthProviders.default));
     const roles = acm.getRolesPerOperation(operation, operation === 'delete');
     return rolesHasDefaultProvider(roles) || (roles.length === 0 && this.configuredAuthProviders.shouldAddDefaultServiceDirective);
   }
@@ -1132,8 +1250,8 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     const providers: Set<AuthProvider> = new Set();
     // get the roles created for type
     roles.forEach((role) => providers.add(this.roleMap.get(role)!.provider));
-    if (this.configuredAuthProviders.hasAdminRolesEnabled) {
-      providers.add('iam');
+    if (this.configuredAuthProviders.hasAdminRolesEnabled || this.configuredAuthProviders.genericIamAccessEnabled) {
+      providers.add('identityPool');
     }
     return Array.from(providers);
   }
@@ -1195,7 +1313,9 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
       if (!hasSeenType) {
         this.seenNonModelTypes.set(nonModelName, new Set<string>([...directives.map((dir) => dir.name.value)]));
         // since we haven't seen this type before we add it to the iam policy resource sets
-        const hasIAM = directives.some((dir) => dir.name.value === 'aws_iam') || this.configuredAuthProviders.default === 'iam';
+        const hasIAM =
+          directives.some((dir) => dir.name.value === 'aws_iam') ||
+          isAuthProviderEqual(this.configuredAuthProviders.default, 'identityPool');
         if (hasIAM) {
           this.unauthPolicyResources.add(`${nonModelFieldType.name.value}/null`);
           this.authPolicyResources.add(`${nonModelFieldType.name.value}/null`);
@@ -1225,15 +1345,20 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     */
     const addDirectiveIfNeeded = (provider: AuthProvider, directiveName: string): void => {
       if (
-        (this.configuredAuthProviders.default !== provider && providers.some((p) => p === provider)) ||
-        (this.configuredAuthProviders.default === provider && providers.some((p) => p !== provider && addDefaultIfNeeded === true))
+        (!isAuthProviderEqual(this.configuredAuthProviders.default, provider) && providers.some((p) => isAuthProviderEqual(p, provider))) ||
+        (isAuthProviderEqual(this.configuredAuthProviders.default, provider) &&
+          providers.some((p) => !isAuthProviderEqual(p, provider) && addDefaultIfNeeded === true))
       ) {
         directives.push(makeDirective(directiveName, []));
       }
     };
 
+    const directivesAlreadyApplied = new Set<string>();
     AUTH_PROVIDER_DIRECTIVE_MAP.forEach((directiveName, authProvider) => {
-      addDirectiveIfNeeded(authProvider, directiveName);
+      if (!directivesAlreadyApplied.has(directiveName)) {
+        addDirectiveIfNeeded(authProvider, directiveName);
+        directivesAlreadyApplied.add(directiveName);
+      }
     });
     /*
       If we have any rules for the default provider AND those with other providers,
@@ -1246,8 +1371,8 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
       cannot add @aws_api_key to other operations since their is no rule granted access to it
     */
     if (
-      providers.some((p) => p === this.configuredAuthProviders.default) &&
-      providers.some((p) => p !== this.configuredAuthProviders.default) &&
+      providers.some((p) => isAuthProviderEqual(p, this.configuredAuthProviders.default)) &&
+      providers.some((p) => !isAuthProviderEqual(p, this.configuredAuthProviders.default)) &&
       !directives.some((d) => d.name.value === AUTH_PROVIDER_DIRECTIVE_MAP.get(this.configuredAuthProviders.default))
     ) {
       directives.push(makeDirective(AUTH_PROVIDER_DIRECTIVE_MAP.get(this.configuredAuthProviders.default) as string, []));
@@ -1316,7 +1441,7 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
       return;
     }
     this.generateIAMPolicyForAuthRole = rules.some(
-      (rule) => (rule.allow === 'private' || rule.allow === 'public') && rule.provider === 'iam',
+      (rule) => (rule.allow === 'private' || rule.allow === 'public') && isAuthProviderEqual(rule.provider, 'identityPool'),
     );
   }
 
@@ -1324,12 +1449,18 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
     if (rules.length === 0 || this.generateIAMPolicyForUnauthRole === true) {
       return;
     }
-    this.generateIAMPolicyForUnauthRole = rules.some((rule) => rule.allow === 'public' && rule.provider === 'iam');
+    this.generateIAMPolicyForUnauthRole = rules.some(
+      (rule) => rule.allow === 'public' && isAuthProviderEqual(rule.provider, 'identityPool'),
+    );
   }
 
   private addOperationToResourceReferences(operationName: string, fieldName: string, roles: Array<string>): void {
-    const iamPublicRolesExist = roles.some((r) => this.roleMap.get(r)!.provider === 'iam' && this.roleMap.get(r)!.strategy === 'public');
-    const iamPrivateRolesExist = roles.some((r) => this.roleMap.get(r)!.provider === 'iam' && this.roleMap.get(r)!.strategy === 'private');
+    const iamPublicRolesExist = roles.some(
+      (r) => isAuthProviderEqual(this.roleMap.get(r)!.provider, 'identityPool') && this.roleMap.get(r)!.strategy === 'public',
+    );
+    const iamPrivateRolesExist = roles.some(
+      (r) => isAuthProviderEqual(this.roleMap.get(r)!.provider, 'identityPool') && this.roleMap.get(r)!.strategy === 'private',
+    );
 
     if (iamPublicRolesExist) {
       this.unauthPolicyResources.add(`${operationName}/${fieldName}`);
@@ -1344,8 +1475,12 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
    * TODO: Change Resource Ref Object/Field Functions to work with roles
    */
   private addTypeToResourceReferences(typeName: string, rules: AuthRule[]): void {
-    const iamPublicRulesExist = rules.some((r) => r.allow === 'public' && r.provider === 'iam' && r.generateIAMPolicy);
-    const iamPrivateRulesExist = rules.some((r) => r.allow === 'private' && r.provider === 'iam' && r.generateIAMPolicy);
+    const iamPublicRulesExist = rules.some(
+      (r) => r.allow === 'public' && isAuthProviderEqual(r.provider, 'identityPool') && r.generateIAMPolicy,
+    );
+    const iamPrivateRulesExist = rules.some(
+      (r) => r.allow === 'private' && isAuthProviderEqual(r.provider, 'identityPool') && r.generateIAMPolicy,
+    );
 
     if (iamPublicRulesExist) {
       this.unauthPolicyResources.add(`${typeName}/null`);
@@ -1357,8 +1492,12 @@ export class AuthTransformer extends TransformerAuthBase implements TransformerA
   }
 
   private addFieldToResourceReferences(typeName: string, fieldName: string, rules: AuthRule[]): void {
-    const iamPublicRulesExist = rules.some((r) => r.allow === 'public' && r.provider === 'iam' && r.generateIAMPolicy);
-    const iamPrivateRulesExist = rules.some((r) => r.allow === 'private' && r.provider === 'iam' && r.generateIAMPolicy);
+    const iamPublicRulesExist = rules.some(
+      (r) => r.allow === 'public' && isAuthProviderEqual(r.provider, 'identityPool') && r.generateIAMPolicy,
+    );
+    const iamPrivateRulesExist = rules.some(
+      (r) => r.allow === 'private' && isAuthProviderEqual(r.provider, 'identityPool') && r.generateIAMPolicy,
+    );
 
     if (iamPublicRulesExist) {
       this.unauthPolicyResources.add(`${typeName}/${fieldName}`);

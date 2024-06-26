@@ -2,8 +2,6 @@ import * as path from 'path';
 import { Construct } from 'constructs';
 import { ExecuteTransformConfig, executeTransform } from '@aws-amplify/graphql-transformer';
 import { NestedStack, Stack } from 'aws-cdk-lib';
-import { Asset } from 'aws-cdk-lib/aws-s3-assets';
-import { AssetProps } from '@aws-amplify/graphql-transformer-interfaces';
 import { AttributionMetadataStorage, StackMetadataBackendOutputStorageStrategy } from '@aws-amplify/backend-output-storage';
 import { graphqlOutputKey } from '@aws-amplify/backend-output-schemas';
 import type { GraphqlOutput, AwsAppsyncAuthenticationType } from '@aws-amplify/backend-output-schemas';
@@ -36,18 +34,19 @@ import type {
   FunctionSlot,
   IBackendOutputStorageStrategy,
   AddFunctionProps,
-  ConflictResolution,
+  DataStoreConfiguration,
   IAmplifyGraphqlDefinition,
 } from './types';
 import {
   convertAuthorizationModesToTransformerAuthConfig,
   convertToResolverConfig,
   defaultTranslationBehavior,
-  AssetManager,
+  AssetProvider,
   getGeneratedResources,
   getGeneratedFunctionSlots,
   CodegenAssets,
   getAdditionalAuthenticationTypes,
+  validateAuthorizationModes,
 } from './internal';
 import { getStackForScope, walkAndProcessNodes } from './internal/construct-tree';
 import { getDataSourceStrategiesProvider } from './internal/data-source-config';
@@ -120,9 +119,9 @@ export class AmplifyGraphqlApi extends Construct {
   public readonly apiId: string;
 
   /**
-   * Conflict resolution setting
+   * DataStore conflict resolution setting
    */
-  private readonly conflictResolution: ConflictResolution | undefined;
+  private readonly dataStoreConfiguration: DataStoreConfiguration | undefined;
 
   /**
    * Be very careful editing this value. This is the string that is used to identify graphql stacks in BI metrics
@@ -152,7 +151,16 @@ export class AmplifyGraphqlApi extends Construct {
       translationBehavior,
       functionNameMap,
       outputStorageStrategy,
+      dataStoreConfiguration,
     } = props;
+
+    if (conflictResolution && dataStoreConfiguration) {
+      throw new Error(
+        `conflictResolution is deprecated. conflictResolution and dataStoreConfiguration cannot be used together. Please use dataStoreConfiguration.`,
+      );
+    }
+
+    this.dataStoreConfiguration = dataStoreConfiguration || conflictResolution;
 
     const dataSources = getMetadataDataSources(definition);
 
@@ -160,6 +168,7 @@ export class AmplifyGraphqlApi extends Construct {
       dataSources,
     });
 
+    validateAuthorizationModes(authorizationModes);
     const { authConfig, authSynthParameters } = convertAuthorizationModesToTransformerAuthConfig(authorizationModes);
 
     validateFunctionSlots(functionSlots ?? []);
@@ -173,17 +182,14 @@ export class AmplifyGraphqlApi extends Construct {
       throw new Error(`or cdk --context env must have a length <= 8, found ${amplifyEnvironmentName}`);
     }
 
-    const assetManager = new AssetManager();
+    const assetProvider = new AssetProvider(this);
 
     const executeTransformConfig: ExecuteTransformConfig = {
       scope: this,
       nestedStackProvider: {
         provide: (nestedStackScope: Construct, name: string) => new NestedStack(nestedStackScope, name),
       },
-      assetProvider: {
-        provide: (assetScope: Construct, assetId: string, assetProps: AssetProps) =>
-          new Asset(assetScope, assetId, { path: assetManager.addAsset(assetProps.fileName, assetProps.fileContent) }),
-      },
+      assetProvider,
       synthParameters: {
         amplifyEnvironmentName: amplifyEnvironmentName,
         apiName: props.apiName ?? id,
@@ -201,7 +207,7 @@ export class AmplifyGraphqlApi extends Construct {
       },
       authConfig,
       stackMapping: stackMappings ?? {},
-      resolverConfig: conflictResolution ? convertToResolverConfig(conflictResolution) : undefined,
+      resolverConfig: this.dataStoreConfiguration ? convertToResolverConfig(this.dataStoreConfiguration) : undefined,
       transformParameters: {
         ...defaultTranslationBehavior,
         ...(translationBehavior ?? {}),
@@ -209,6 +215,7 @@ export class AmplifyGraphqlApi extends Construct {
       // CDK construct uses a custom resource. We'll define this explicitly here to remind ourselves that this value is unused in the CDK
       // construct flow
       rdsLayerMapping: undefined,
+      rdsSnsTopicMapping: undefined,
       ...getDataSourceStrategiesProvider(definition),
     };
 
@@ -217,8 +224,7 @@ export class AmplifyGraphqlApi extends Construct {
     this.codegenAssets = new CodegenAssets(this, 'AmplifyCodegenAssets', { modelSchema: definition.schema });
 
     this.resources = getGeneratedResources(this);
-    this.conflictResolution = conflictResolution;
-    this.generatedFunctionSlots = getGeneratedFunctionSlots(assetManager.resolverAssets);
+    this.generatedFunctionSlots = getGeneratedFunctionSlots(assetProvider.resolverAssets);
     this.storeOutput(outputStorageStrategy);
 
     this.apiId = this.resources.cfnResources.cfnGraphqlApi.attrApiId;
@@ -255,8 +261,8 @@ export class AmplifyGraphqlApi extends Construct {
       output.payload.awsAppsyncAdditionalAuthenticationTypes = additionalAuthTypes;
     }
 
-    if (this.conflictResolution?.project?.handlerType) {
-      output.payload.awsAppsyncConflictResolutionMode = this.conflictResolution?.project?.handlerType;
+    if (this.dataStoreConfiguration?.project?.handlerType) {
+      output.payload.awsAppsyncConflictResolutionMode = this.dataStoreConfiguration?.project?.handlerType;
     }
 
     outputStorageStrategy.addBackendOutputEntry(graphqlOutputKey, output);
@@ -392,7 +398,7 @@ export class AmplifyGraphqlApi extends Construct {
  * @param scope the scope this construct is created in.
  */
 const validateNoOtherAmplifyGraphqlApiInStack = (scope: Construct): void => {
-  const rootStack = getStackForScope(scope, true);
+  const rootStack = getStackForScope(scope, false);
 
   let wasOtherAmplifyGraphlApiFound = false;
   walkAndProcessNodes(rootStack, (node: Construct) => {
@@ -402,7 +408,7 @@ const validateNoOtherAmplifyGraphqlApiInStack = (scope: Construct): void => {
   });
 
   if (wasOtherAmplifyGraphlApiFound) {
-    throw new Error('Only one AmplifyGraphqlApi is expected in a stack');
+    throw new Error('Only one AmplifyGraphqlApi is expected in a stack. Place the AmplifyGraphqlApis in separate nested stacks.');
   }
 };
 

@@ -29,6 +29,7 @@ import { DocumentNode } from 'graphql/language';
 import { DocumentNode as DocumentNode_2 } from 'graphql';
 import { EnumTypeDefinitionNode } from 'graphql';
 import { EnumTypeExtensionNode } from 'graphql';
+import { Expression } from 'graphql-mapping-template';
 import { FieldDefinitionNode } from 'graphql';
 import { FieldNode } from 'graphql';
 import { Grant } from 'aws-cdk-lib/aws-iam';
@@ -59,6 +60,8 @@ import { OperationTypeDefinitionNode } from 'graphql';
 import { QueryFieldType } from '@aws-amplify/graphql-transformer-interfaces';
 import { RDSLayerMapping } from '@aws-amplify/graphql-transformer-interfaces';
 import { RDSLayerMappingProvider } from '@aws-amplify/graphql-transformer-interfaces';
+import { RDSSNSTopicMapping } from '@aws-amplify/graphql-transformer-interfaces';
+import { RDSSNSTopicMappingProvider } from '@aws-amplify/graphql-transformer-interfaces';
 import { S3MappingTemplateProvider } from '@aws-amplify/graphql-transformer-interfaces';
 import { SchemaDefinitionNode } from 'graphql';
 import { SqlDirectiveDataSourceStrategy } from '@aws-amplify/graphql-transformer-interfaces';
@@ -120,7 +123,19 @@ export const enum ConflictHandlerType {
 }
 
 // @public (undocumented)
+export const constructArrayFieldsStatement: (tableName: string, ctx: TransformerContextProvider) => Expression;
+
+// @public (undocumented)
+export const constructAuthFilterStatement: (keyName: string, emptyAuthFilter?: boolean) => Expression;
+
+// @public (undocumented)
 export const constructDataSourceStrategies: (schema: string, dataSourceStrategy: ModelDataSourceStrategy) => Record<string, ModelDataSourceStrategy>;
+
+// @public (undocumented)
+export const constructFieldMappingInput: () => Expression;
+
+// @public (undocumented)
+export const constructNonScalarFieldsStatement: (tableName: string, ctx: TransformerContextProvider) => Expression;
 
 // @public (undocumented)
 export const constructSqlDirectiveDataSourceStrategies: (schema: string, dataSourceStrategy: ModelDataSourceStrategy, customSqlStatements?: Record<string, string>) => SqlDirectiveDataSourceStrategy[];
@@ -200,12 +215,27 @@ export type GetArgumentsOptions = {
 };
 
 // @public (undocumented)
+export const getArrayFields: (object: ObjectTypeDefinitionNode | undefined, ctx: TransformerContextProvider) => string[];
+
+// @public (undocumented)
+export const getConditionInputName: (modelName: string) => string;
+
+// @public (undocumented)
+export const getConnectionName: (modelName: string) => string;
+
+// @public (undocumented)
 export const getDefaultStrategyNameForDbType: (dbType: ModelDataSourceStrategySqlDbType) => string;
+
+// @public (undocumented)
+export const getField: (obj: ObjectTypeDefinitionNode, fieldName: string) => FieldDefinitionNode | undefined;
 
 // Warning: (ae-forgotten-export) The symbol "Operation" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
 export const getFieldNameFor: (op: Operation, typeName: string) => string;
+
+// @public (undocumented)
+export const getFilterInputName: (modelName: string) => string;
 
 // @public (undocumented)
 export const getImportedRDSTypeFromStrategyDbType: (dbType: ModelDataSourceStrategyDbType) => ImportedRDSType;
@@ -223,7 +253,13 @@ export const getModelDataSourceStrategy: (ctx: DataSourceStrategiesProvider, typ
 export const getModelTypeNames: (schema: string) => string[];
 
 // @public (undocumented)
+export const getNonScalarFields: (object: ObjectTypeDefinitionNode | undefined, ctx: TransformerContextProvider) => string[];
+
+// @public (undocumented)
 export const getParameterStoreSecretPath: (secret: string, secretsKey: string, apiName: string, environmentName: string, appId: string) => string;
+
+// @public (undocumented)
+export const getPrimaryKeyFieldNodes: (type: ObjectTypeDefinitionNode) => FieldDefinitionNode[];
 
 // @public (undocumented)
 export const getPrimaryKeyFields: (type: ObjectTypeDefinitionNode) => string[];
@@ -241,7 +277,13 @@ export const getResourceNamesForStrategyName: (strategyName: string) => SQLLambd
 export const getSortKeyFieldNames: (type: ObjectTypeDefinitionNode) => string[];
 
 // @public (undocumented)
+export const getStrategyDbTypeFromModel: (ctx: DataSourceStrategiesProvider, typename: string) => ModelDataSourceStrategyDbType;
+
+// @public (undocumented)
 export const getStrategyDbTypeFromTypeNode: (type: TypeNode, ctx: TransformerContextProvider) => ModelDataSourceStrategyDbType;
+
+// @public (undocumented)
+export const getSubscriptionFilterInputName: (modelName: string) => string;
 
 // @public (undocumented)
 function getSyncConfig(ctx: TransformerTransformSchemaStepContextProvider, typeName: string): SyncConfig | undefined;
@@ -250,13 +292,16 @@ function getSyncConfig(ctx: TransformerTransformSchemaStepContextProvider, typeN
 export const getTable: (ctx: TransformerContextProvider, object: ObjectTypeDefinitionNode) => any;
 
 // @public (undocumented)
+export const getType: (schema: DocumentNode_2, typeName: string) => ObjectTypeDefinitionNode | undefined;
+
+// @public (undocumented)
 export class GraphQLTransform {
     constructor(options: GraphQLTransformOptions);
     // Warning: (ae-forgotten-export) The symbol "TransformerOutput" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "GraphQLApi" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)
-    protected generateGraphQlApi(stackManager: StackManagerProvider, synthParameters: SynthParameters, output: TransformerOutput, transformParameters: TransformParameters): GraphQLApi;
+    protected generateGraphQlApi(stackManager: StackManagerProvider, assetProvider: AssetProvider, synthParameters: SynthParameters, output: TransformerOutput, transformParameters: TransformParameters): GraphQLApi;
     // (undocumented)
     getLogs(): TransformerLog[];
     // (undocumented)
@@ -264,7 +309,7 @@ export class GraphQLTransform {
     // Warning: (ae-forgotten-export) The symbol "TransformOption" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)
-    transform({ assetProvider, dataSourceStrategies, nestedStackProvider, parameterProvider, rdsLayerMapping, schema, scope, sqlDirectiveDataSourceStrategies, synthParameters, }: TransformOption): void;
+    transform({ assetProvider, dataSourceStrategies, nestedStackProvider, parameterProvider, rdsLayerMapping, rdsSnsTopicMapping, schema, scope, sqlDirectiveDataSourceStrategies, synthParameters, }: TransformOption): void;
 }
 
 // @public (undocumented)
@@ -536,6 +581,10 @@ export interface SQLLambdaResourceNames {
     sqlPatchingSubscription: string;
     // (undocumented)
     sqlPatchingTopic: string;
+    // (undocumented)
+    sqlSNSTopicArnMapping: string;
+    // (undocumented)
+    sqlSNSTopicARNResolverCustomResource: string;
     // (undocumented)
     sqlStack: string;
     // (undocumented)

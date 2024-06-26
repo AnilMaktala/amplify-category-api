@@ -117,11 +117,58 @@ export interface SubnetAvailabilityZone {
 }
 
 /**
+ * The credentials the lambda data source will use to connect to the database.
+ *
+ * @experimental
+ */
+export type SqlModelDataSourceDbConnectionConfig =
+  | SqlModelDataSourceSecretsManagerDbConnectionConfig
+  | SqlModelDataSourceSsmDbConnectionConfig
+  | SqlModelDataSourceSsmDbConnectionStringConfig;
+
+/**
+ * The configuration option to use a Secure Systems Manager parameter to store the connection string to the database.
+ * @experimental
+ */
+export interface SqlModelDataSourceSsmDbConnectionStringConfig {
+  /**
+   * The SSM Path to the secure connection string used for connecting to the database. If more than one path is provided,
+   * the SQL Lambda will attempt to retrieve connection information from each path in order until it finds a valid
+   * path entry, then stop. If the connection information contained in that path is invalid, the SQL Lambda will not
+   * attempt to retrieve connection information from subsequent paths in the array.
+   **/
+  readonly connectionUriSsmPath: string | string[];
+}
+
+/**
+ * The credentials stored in Secrets Manager that the lambda data source will use to connect to the database.
+ *
+ * The managed secret should be in the same region as the lambda.
+ * @experimental
+ */
+export interface SqlModelDataSourceSecretsManagerDbConnectionConfig {
+  /** The ARN of the managed secret with username, password, and hostname to use when connecting to the database. **/
+  readonly secretArn: string;
+
+  /** The ARN of the customer managed encryption key for the secret. If not supplied, the secret is expected to be encrypted with the default AWS-managed key. **/
+  readonly keyArn?: string;
+
+  /** The port number of the database proxy, cluster, or instance. */
+  readonly port: number;
+
+  /** The database name. */
+  readonly databaseName: string;
+
+  /** The hostame of the database. */
+  readonly hostname: string;
+}
+
+/**
  * The Secure Systems Manager parameter paths the Lambda data source will use to connect to the database.
  *
  * These parameters are retrieved from Secure Systems Manager in the same region as the Lambda.
  */
-export interface SqlModelDataSourceDbConnectionConfig {
+export interface SqlModelDataSourceSsmDbConnectionConfig {
   /** The Secure Systems Manager parameter containing the hostname of the database. For RDS-based SQL data sources, this can be the hostname
    * of a database proxy, cluster, or instance.
    */

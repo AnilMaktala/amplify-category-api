@@ -3,6 +3,74 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.10.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.9.5...@aws-amplify/graphql-api-construct@1.10.0) (2024-06-25)
+
+### Features
+
+- allow subscriptions to inherit primary model auth rules for relational fields behind a feature flag ([#2649](https://github.com/aws-amplify/amplify-category-api/issues/2649)) ([56a853a](https://github.com/aws-amplify/amplify-category-api/commit/56a853ace0026de97395cfa17ca156cf360ac5c2))
+
+## [1.9.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.9.4...@aws-amplify/graphql-api-construct@1.9.5) (2024-06-06)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
+## [1.9.4](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.9.3...@aws-amplify/graphql-api-construct@1.9.4) (2024-06-04)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
+## [1.9.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.9.2...@aws-amplify/graphql-api-construct@1.9.3) (2024-05-15)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
+## [1.9.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.9.1...@aws-amplify/graphql-api-construct@1.9.2) (2024-05-10)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
+## [1.9.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.9.0...@aws-amplify/graphql-api-construct@1.9.1) (2024-05-01)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
+# [1.9.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.8.1...@aws-amplify/graphql-api-construct@1.9.0) (2024-04-26)
+
+### Features
+
+- allow multiple graphql APIs in a cdk app ([#2406](https://github.com/aws-amplify/amplify-category-api/issues/2406)) ([72ca6ba](https://github.com/aws-amplify/amplify-category-api/commit/72ca6ba7243d1f267d38be76e43d623d16608c14))
+- **api:** enable cors on codegen asset bucket ([#2366](https://github.com/aws-amplify/amplify-category-api/issues/2366)) ([b69a492](https://github.com/aws-amplify/amplify-category-api/commit/b69a4924002ecb17780b9c3a0f33f44f59d9b642))
+- generic iam authorization ([#2385](https://github.com/aws-amplify/amplify-category-api/issues/2385)) ([550ee80](https://github.com/aws-amplify/amplify-category-api/commit/550ee803275817d25447ff1400d55eb1ad4cd0c2))
+- support multiple connection Uris for SQL databases ([#2481](https://github.com/aws-amplify/amplify-category-api/issues/2481)) ([7ea8000](https://github.com/aws-amplify/amplify-category-api/commit/7ea8000026d3f8fe9c791720701250fa958c9bc8))
+
+## [1.8.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.8.0...@aws-amplify/graphql-api-construct@1.8.1) (2024-04-16)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
+# [1.8.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.7.0...@aws-amplify/graphql-api-construct@1.8.0) (2024-04-11)
+
+### Bug Fixes
+
+- propagate mutation context to relational fields ([#2416](https://github.com/aws-amplify/amplify-category-api/issues/2416)) ([fd7f6fb](https://github.com/aws-amplify/amplify-category-api/commit/fd7f6fbc17c199331c4b04debaff69ea0424cd74))
+
+### Features
+
+- add cdk sql connection string support ([#2409](https://github.com/aws-amplify/amplify-category-api/issues/2409)) ([274d117](https://github.com/aws-amplify/amplify-category-api/commit/274d1176d96e265d02817a975848c767d6d43c31))
+- adds a default none data source ([#2408](https://github.com/aws-amplify/amplify-category-api/issues/2408)) ([98ae284](https://github.com/aws-amplify/amplify-category-api/commit/98ae284f6af99195369eaac5e8fb0d62ebbc536d))
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+# [1.7.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.6.0...@aws-amplify/graphql-api-construct@1.7.0) (2024-03-28)
+
+### Features
+
+- add secrets manager as credential store for sql lambda ([#2289](https://github.com/aws-amplify/amplify-category-api/issues/2289)) ([affdb98](https://github.com/aws-amplify/amplify-category-api/commit/affdb988b499591c3a96608f772b637ddd8c3a0c))
+
+# [1.6.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.5.7...@aws-amplify/graphql-api-construct@1.6.0) (2024-03-13)
+
+### Features
+
+- expose table representative & access refactor for amplify managed table in api construct ([8777cd1](https://github.com/aws-amplify/amplify-category-api/commit/8777cd1d9609ef4d85c5ea3c95b249cc13ade6e4))
+- replace conflictResolution with dataStoreConfiguration ([#2298](https://github.com/aws-amplify/amplify-category-api/issues/2298)) ([b5fb92b](https://github.com/aws-amplify/amplify-category-api/commit/b5fb92b5ae5b9eab3acfa44f7977d9159116c6f9))
+
+## [1.5.7](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.5.6...@aws-amplify/graphql-api-construct@1.5.7) (2024-02-28)
+
+**Note:** Version bump only for package @aws-amplify/graphql-api-construct
+
 ## [1.5.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-api-construct@1.5.5...@aws-amplify/graphql-api-construct@1.5.6) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/graphql-api-construct

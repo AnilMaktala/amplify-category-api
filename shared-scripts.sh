@@ -87,6 +87,14 @@ function _buildLinux {
   yarn build-tests
   storeCacheForBuildJob
 }
+
+# used when build is not necessary for codebuild project
+function _installLinux {
+  _setShell
+  echo "Linux Install"
+  yarn run production-install
+  storeCacheForBuildJob
+}
 function _testLinux {
   echo "Run Unit Test"
   loadCacheFromBuildJob
@@ -137,6 +145,13 @@ function _publishToLocalRegistry {
       fi
     fi
     echo $BRANCH_NAME
+
+    # Increase buffer size to avoid error when git operations return large response on CI
+    if [ "$CI" = "true" ]; then
+      git config http.version HTTP/1.1
+      git config http.postBuffer 157286400
+    fi
+
     git checkout $BRANCH_NAME
   
     # Fetching git tags from upstream
@@ -145,7 +160,7 @@ function _publishToLocalRegistry {
     echo "fetching tags"
     git fetch --tags https://github.com/aws-amplify/amplify-category-api
     # Create the folder to avoid failure when no packages are published due to no change detected
-    mkdir ../verdaccio-cache
+    rm -rf ../verdaccio-cache && mkdir ../verdaccio-cache
 
     source codebuild_specs/scripts/local_publish_helpers.sh
     startLocalRegistry "$(pwd)/codebuild_specs/scripts/verdaccio.yaml"
@@ -159,10 +174,19 @@ function _publishToLocalRegistry {
       yarn lerna publish --exact --dist-tag=latest --preid=$NPM_TAG --conventional-commits --conventional-prerelease --no-verify-access --yes --no-commit-hooks --no-push --no-git-tag-version
     fi
     unsetNpmRegistryUrl
+
     # copy [verdaccio-cache] to s3
     storeCache $CODEBUILD_SRC_DIR/../verdaccio-cache verdaccio-cache
 
     _generateChangeLog
+}
+function _publishLocalWorkspace {
+    source codebuild_specs/scripts/local_publish_helpers.sh
+    startLocalRegistry "$(pwd)/codebuild_specs/scripts/verdaccio.yaml"
+    setNpmRegistryUrlToLocal
+    setNpmTag
+    yarn publish-to-verdaccio
+    unsetNpmRegistryUrl
 }
 function _generateChangeLog {
     echo "Generate Change Log"
@@ -179,8 +203,11 @@ function _installCLIFromLocalRegistry {
     setNpmRegistryUrlToLocal
     changeNpmGlobalPath
     # set longer timeout to avoid socket timeout error
-    npm config set fetch-retry-mintimeout 20000
-    npm config set fetch-retry-maxtimeout 120000
+    npm config set fetch-retries 5
+    npm config set fetch-timeout 600000
+    npm config set fetch-retry-mintimeout 30000
+    npm config set fetch-retry-maxtimeout 180000
+    npm config set maxsockets 1
     npm install -g @aws-amplify/cli-internal
     echo "using Amplify CLI version: "$(amplify --version)
     npm list -g --depth=1 | grep -e '@aws-amplify/amplify-category-api' -e 'amplify-codegen'
@@ -274,10 +301,26 @@ function _unassumeTestAccountCredentials {
 function useChildAccountCredentials {
     if [ -z "$USE_PARENT_ACCOUNT" ]; then
         export AWS_PAGER=""
+        export AWS_MAX_ATTEMPTS=5
+        export AWS_STS_REGIONAL_ENDPOINTS=regional
         parent_acct=$(aws sts get-caller-identity | jq -cr '.Account')
         child_accts=$(aws organizations list-accounts | jq -c "[.Accounts[].Id | select(. != \"$parent_acct\")]")
         org_size=$(echo $child_accts | jq 'length')
-        pick_acct=$(echo $child_accts | jq -cr ".[$RANDOM % $org_size]")
+        opt_in_regions=$(jq -r '.[] | select(.optIn == true) | .name' $CODEBUILD_SRC_DIR/scripts/e2e-test-regions.json)
+        if echo "$opt_in_regions" | grep -qw "$CLI_REGION"; then
+            child_accts=$(echo $child_accts | jq -cr '.[]')
+            for child_acct in $child_accts; do
+                # Get enabled opt-in regions for the child account
+                enabled_regions=$(aws account list-regions --account-id $child_acct --region-opt-status-contains ENABLED)
+                # Check if given opt-in region is enabled for the child account
+                if echo "$enabled_regions" | jq -e ".Regions[].RegionName == \"$CLI_REGION\""; then
+                    pick_acct=$child_acct
+                    break
+                fi
+            done
+        else
+            pick_acct=$(echo $child_accts | jq -cr ".[$RANDOM % $org_size]")
+        fi
         session_id=$((1 + $RANDOM % 10000))
         if [[ -z "$pick_acct" || -z "$session_id" ]]; then
           echo "Unable to find a child account. Falling back to parent AWS account"
@@ -424,6 +467,26 @@ function _deploy {
   ./codebuild_specs/scripts/publish.sh
 }
 
+function _deprecate {
+  loadCacheFromBuildJob
+  echo "Deprecate"
+
+  echo "creating private package manifest"
+  ./scripts/create-private-package-manifest.sh
+  echo "Authenticate with NPM"
+  if [ "$USE_NPM_REGISTRY" == "true" ]; then
+      PUBLISH_TOKEN=$(echo "$NPM_PUBLISH_TOKEN" | jq -r '.token')
+      echo "//registry.npmjs.org/:_authToken=$PUBLISH_TOKEN" > ~/.npmrc
+  else
+    yarn verdaccio-clean
+    source codebuild_specs/scripts/local_publish_helpers.sh
+    startLocalRegistry "$(pwd)/codebuild_specs/scripts/verdaccio.yaml"
+    setNpmRegistryUrlToLocal
+  fi
+  yarn deprecate
+  unsetNpmRegistryUrl
+}
+
 # Accepts the value as an input parameter, i.e. 1 for success, 0 for failure.
 function _emitCanaryMetric {
   aws cloudwatch \
@@ -433,5 +496,27 @@ function _emitCanaryMetric {
     --unit Count \
     --value $CODEBUILD_BUILD_SUCCEEDING \
     --dimensions branch=main \
+    --region us-west-2
+}
+
+function _emitCreateApiCanaryMetric {
+  aws cloudwatch \
+    put-metric-data \
+    --metric-name CreateApiCanarySuccessRate \
+    --namespace amplify-category-api-e2e-tests \
+    --unit Count \
+    --value $CODEBUILD_BUILD_SUCCEEDING \
+    --dimensions branch=main,region=$CLI_REGION \
+    --region us-west-2
+}
+
+function _emitCDKConstructCanaryMetric {
+  aws cloudwatch \
+    put-metric-data \
+    --metric-name $CANARY_METRIC_NAME \
+    --namespace amplify-graphql-api-construct-tests \
+    --unit Count \
+    --value $CODEBUILD_BUILD_SUCCEEDING \
+    --dimensions branch=release,region=$CLI_REGION \
     --region us-west-2
 }

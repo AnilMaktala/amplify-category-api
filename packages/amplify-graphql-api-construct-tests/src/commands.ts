@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { copySync, moveSync, readFileSync } from 'fs-extra';
-import { getScriptRunnerPath, nspawn as spawn } from 'amplify-category-api-e2e-core';
+import { copySync, moveSync, readFileSync, writeFileSync } from 'fs-extra';
+import { getScriptRunnerPath, sleep, nspawn as spawn } from 'amplify-category-api-e2e-core';
 
 /**
  * Retrieve the path to the `npx` executable for interacting with the aws-cdk cli.
@@ -38,8 +38,24 @@ const copyTemplateDirectory = (projectPath: string, templatePath: string): void 
   moveSync(path.join(binDir, 'app.ts'), path.join(binDir, `${path.basename(projectPath)}.ts`), { overwrite: true });
 };
 
+/**
+ * Adds additional values to cdk context persisted in cdk.json file.
+ */
+const appendToCDKContext = (projectPath: string, additionalContext: Record<string, string>): void => {
+  const cdkJsonPath = path.join(projectPath, 'cdk.json');
+  const cdkJson = JSON.parse(readFileSync(cdkJsonPath, 'utf-8'));
+  if (!cdkJson.context) {
+    cdkJson.context = {};
+  }
+  Object.entries(additionalContext).forEach(([contextKey, contextValue]) => {
+    cdkJson.context[contextKey] = contextValue;
+  });
+  writeFileSync(cdkJsonPath, JSON.stringify(cdkJson, null, 2));
+};
+
 export type InitCDKProjectProps = {
   construct?: CdkConstruct;
+  cdkContext?: Record<string, string>;
   cdkVersion?: string;
   additionalDependencies?: Array<string>;
 };
@@ -52,7 +68,7 @@ export type InitCDKProjectProps = {
  * @returns a promise which resolves to the stack name
  */
 export const initCDKProject = async (cwd: string, templatePath: string, props?: InitCDKProjectProps): Promise<string> => {
-  const { cdkVersion = '2.80.0', additionalDependencies = [] } = props ?? {};
+  const { cdkVersion = '2.129.0', additionalDependencies = [] } = props ?? {};
 
   await spawn(getNpxPath(), ['cdk', 'init', 'app', '--language', 'typescript'], {
     cwd,
@@ -65,6 +81,10 @@ export const initCDKProject = async (cwd: string, templatePath: string, props?: 
     .sendYes()
     .runAsync();
 
+  if (props?.cdkContext) {
+    appendToCDKContext(cwd, props.cdkContext);
+  }
+
   copyTemplateDirectory(cwd, templatePath);
 
   const deps = [getPackagedConstructPath(props?.construct ?? 'GraphqlApi'), `aws-cdk-lib@${cdkVersion}`, ...additionalDependencies];
@@ -74,7 +94,15 @@ export const initCDKProject = async (cwd: string, templatePath: string, props?: 
 };
 
 export type CdkDeployProps = {
-  timeoutMs: number;
+  /**
+   * Amount of time to wait with no output from CDK before failing.
+   */
+  timeoutMs?: number;
+
+  /**
+   * Amount of time to wait after deployment before returning. This allows time for certain resources to propagate and finalize.
+   */
+  postDeployWaitMs?: number;
 };
 
 /**
@@ -84,13 +112,30 @@ export type CdkDeployProps = {
  * @returns the generated outputs file as a JSON object
  */
 export const cdkDeploy = async (cwd: string, option: string, props?: CdkDeployProps): Promise<any> => {
-  await spawn(getNpxPath(), ['cdk', 'deploy', '--outputs-file', 'outputs.json', '--require-approval', 'never', option], {
+  // The CodegenAssets BucketDeployment resource takes a while. Set the timeout to 10m account for that. (Note that this is the "no output
+  // timeout"--the overall deployment is still allowed to take longer than 10m)
+  const noOutputTimeout = props?.timeoutMs ?? 10 * 60 * 1000;
+  const commandOptions = {
     cwd,
     stripColors: true,
     // npx cdk does not work on verdaccio
     env: { npm_config_registry: 'https://registry.npmjs.org/' },
-    noOutputTimeout: props?.timeoutMs,
-  }).runAsync();
+    noOutputTimeout,
+  };
+  // This prevents us from maintaining a separate CDK account bootstrap process as we add support for new accounts, regions.
+  // Checks and succeeds early (a no-op) if the account-region combination is already bootstrapped.
+  await spawn(getNpxPath(), ['cdk', 'bootstrap'], commandOptions).runAsync();
+
+  await spawn(
+    getNpxPath(),
+    ['cdk', 'deploy', '--outputs-file', 'outputs.json', '--require-approval', 'never', option],
+    commandOptions,
+  ).runAsync();
+
+  if (props?.postDeployWaitMs) {
+    console.log(`Waiting for ${props.postDeployWaitMs} ms to let resources propagate and finalize`);
+    await sleep(props.postDeployWaitMs);
+  }
 
   return JSON.parse(readFileSync(path.join(cwd, 'outputs.json'), 'utf8'));
 };

@@ -3,6 +3,75 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.10.1...@aws-amplify/graphql-model-transformer@2.10.2) (2024-06-25)
+
+**Note:** Version bump only for package @aws-amplify/graphql-model-transformer
+
+## [2.10.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.10.0...@aws-amplify/graphql-model-transformer@2.10.1) (2024-05-15)
+
+### Bug Fixes
+
+- **api:** handle attribute type change on gsi ([#2542](https://github.com/aws-amplify/amplify-category-api/issues/2542)) ([f0a4709](https://github.com/aws-amplify/amplify-category-api/commit/f0a470990dd41966f802bb6ecb7b7ffa41a5c7d5))
+
+# [2.10.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.9.1...@aws-amplify/graphql-model-transformer@2.10.0) (2024-05-10)
+
+### Features
+
+- add tag to SQL datasource function ([#2511](https://github.com/aws-amplify/amplify-category-api/issues/2511)) ([d64fc1e](https://github.com/aws-amplify/amplify-category-api/commit/d64fc1e4d19c923cf985e30e26ce95c565a8839b))
+
+## [2.9.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.9.0...@aws-amplify/graphql-model-transformer@2.9.1) (2024-05-01)
+
+### Bug Fixes
+
+- **graphql-relational-transformer:** nullability enforcement for references relational fields ([#2510](https://github.com/aws-amplify/amplify-category-api/issues/2510)) ([d540097](https://github.com/aws-amplify/amplify-category-api/commit/d54009736092410b2d6e78ebf116a38298bf03ce))
+- set installLatestAwsSdk on AwsCustomResource to false ([#2509](https://github.com/aws-amplify/amplify-category-api/issues/2509)) ([53665c0](https://github.com/aws-amplify/amplify-category-api/commit/53665c05122ce2339c8c5358b9b6b57395e4de87))
+
+### Performance Improvements
+
+- **graphql-model-transformer:** minimal provider framework and inline policies ([#2490](https://github.com/aws-amplify/amplify-category-api/issues/2490)) ([a86c816](https://github.com/aws-amplify/amplify-category-api/commit/a86c816ceb288376c4dfa9b1d12413edd28cf75e))
+
+# [2.9.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.8.0...@aws-amplify/graphql-model-transformer@2.9.0) (2024-04-26)
+
+### Bug Fixes
+
+- add non-scalar and array fields to SQL relations ([#2501](https://github.com/aws-amplify/amplify-category-api/issues/2501)) ([511f020](https://github.com/aws-amplify/amplify-category-api/commit/511f0202583e3e2110a2c22f3bfd24845ea038c0))
+- auto generated id when timestamps: null ([#2470](https://github.com/aws-amplify/amplify-category-api/issues/2470)) ([936a4f9](https://github.com/aws-amplify/amplify-category-api/commit/936a4f9b40ae21a7bd4250616c8d83835bb75784))
+
+### Features
+
+- generic iam authorization ([#2385](https://github.com/aws-amplify/amplify-category-api/issues/2385)) ([550ee80](https://github.com/aws-amplify/amplify-category-api/commit/550ee803275817d25447ff1400d55eb1ad4cd0c2))
+- support multiple connection Uris for SQL databases ([#2481](https://github.com/aws-amplify/amplify-category-api/issues/2481)) ([7ea8000](https://github.com/aws-amplify/amplify-category-api/commit/7ea8000026d3f8fe9c791720701250fa958c9bc8))
+
+# [2.8.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.7.0...@aws-amplify/graphql-model-transformer@2.8.0) (2024-04-11)
+
+### Bug Fixes
+
+- **amplify-table:** describe ttl rate limit ([#2410](https://github.com/aws-amplify/amplify-category-api/issues/2410)) ([0d2ea6a](https://github.com/aws-amplify/amplify-category-api/commit/0d2ea6a85497e75886cabcdb0f0246d1e562f1c3))
+- remove null timestamp fields from filter input ([#2435](https://github.com/aws-amplify/amplify-category-api/issues/2435)) ([045ece2](https://github.com/aws-amplify/amplify-category-api/commit/045ece2ed41a34baa5e6c5ed0c2b9ec8fddaf5f1))
+
+### Features
+
+- add cdk sql connection string support ([#2409](https://github.com/aws-amplify/amplify-category-api/issues/2409)) ([274d117](https://github.com/aws-amplify/amplify-category-api/commit/274d1176d96e265d02817a975848c767d6d43c31))
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+# [2.7.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.6.0...@aws-amplify/graphql-model-transformer@2.7.0) (2024-03-28)
+
+### Features
+
+- add secrets manager as credential store for sql lambda ([#2289](https://github.com/aws-amplify/amplify-category-api/issues/2289)) ([affdb98](https://github.com/aws-amplify/amplify-category-api/commit/affdb988b499591c3a96608f772b637ddd8c3a0c))
+
+# [2.6.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.5.0...@aws-amplify/graphql-model-transformer@2.6.0) (2024-03-13)
+
+### Features
+
+- expose table representative & access refactor for amplify managed table in api construct ([8777cd1](https://github.com/aws-amplify/amplify-category-api/commit/8777cd1d9609ef4d85c5ea3c95b249cc13ade6e4))
+
+# [2.5.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.4.5...@aws-amplify/graphql-model-transformer@2.5.0) (2024-02-28)
+
+### Features
+
+- add implicit fields to filter input ([#2236](https://github.com/aws-amplify/amplify-category-api/issues/2236)) ([f7ec601](https://github.com/aws-amplify/amplify-category-api/commit/f7ec6014d4eecfede186129a6ea19041780bafb3))
+
 ## [2.4.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-model-transformer@2.4.4...@aws-amplify/graphql-model-transformer@2.4.5) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/graphql-model-transformer

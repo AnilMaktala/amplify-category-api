@@ -3,6 +3,73 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.6.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.5.5...@aws-amplify/graphql-auth-transformer@3.6.0) (2024-06-25)
+
+### Features
+
+- allow subscriptions to inherit primary model auth rules for relational fields behind a feature flag ([#2649](https://github.com/aws-amplify/amplify-category-api/issues/2649)) ([56a853a](https://github.com/aws-amplify/amplify-category-api/commit/56a853ace0026de97395cfa17ca156cf360ac5c2))
+
+## [3.5.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.5.4...@aws-amplify/graphql-auth-transformer@3.5.5) (2024-06-06)
+
+**Note:** Version bump only for package @aws-amplify/graphql-auth-transformer
+
+## [3.5.4](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.5.3...@aws-amplify/graphql-auth-transformer@3.5.4) (2024-06-04)
+
+### Bug Fixes
+
+- redact relational field in mutation & subscription based on model auth rules ([#2536](https://github.com/aws-amplify/amplify-category-api/issues/2536)) ([f72f40e](https://github.com/aws-amplify/amplify-category-api/commit/f72f40e941f5b48966b60f40222abd80505fb034))
+
+## [3.5.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.5.2...@aws-amplify/graphql-auth-transformer@3.5.3) (2024-05-15)
+
+**Note:** Version bump only for package @aws-amplify/graphql-auth-transformer
+
+## [3.5.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.5.1...@aws-amplify/graphql-auth-transformer@3.5.2) (2024-05-10)
+
+**Note:** Version bump only for package @aws-amplify/graphql-auth-transformer
+
+## [3.5.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.5.0...@aws-amplify/graphql-auth-transformer@3.5.1) (2024-05-01)
+
+**Note:** Version bump only for package @aws-amplify/graphql-auth-transformer
+
+# [3.5.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.4.4...@aws-amplify/graphql-auth-transformer@3.5.0) (2024-04-26)
+
+### Bug Fixes
+
+- **api:** handle error on generate ts data schema when no tables with primary key ([#2483](https://github.com/aws-amplify/amplify-category-api/issues/2483)) ([30a333b](https://github.com/aws-amplify/amplify-category-api/commit/30a333b97934d732c724a9e165edae278cb0c8f5))
+- relational bidirectionality validation and improved error messages ([#2482](https://github.com/aws-amplify/amplify-category-api/issues/2482)) ([568fbc3](https://github.com/aws-amplify/amplify-category-api/commit/568fbc365e4945693f685ba8896d2e5f14031f2d))
+- some API updates that were automerged ([1a1f120](https://github.com/aws-amplify/amplify-category-api/commit/1a1f12043d0cba99a7572778acb9e265aa71ba67))
+
+### Features
+
+- deprecate iam auth provider and rename it to identityPool ([#2320](https://github.com/aws-amplify/amplify-category-api/issues/2320)) ([#2394](https://github.com/aws-amplify/amplify-category-api/issues/2394)) ([383985b](https://github.com/aws-amplify/amplify-category-api/commit/383985ba20dcb04acada10593f8398b7dae79190))
+- generic iam authorization ([#2385](https://github.com/aws-amplify/amplify-category-api/issues/2385)) ([550ee80](https://github.com/aws-amplify/amplify-category-api/commit/550ee803275817d25447ff1400d55eb1ad4cd0c2))
+
+## [3.4.4](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.4.3...@aws-amplify/graphql-auth-transformer@3.4.4) (2024-04-16)
+
+**Note:** Version bump only for package @aws-amplify/graphql-auth-transformer
+
+## [3.4.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.4.2...@aws-amplify/graphql-auth-transformer@3.4.3) (2024-04-11)
+
+### Bug Fixes
+
+- **api:** dynamic auth fields use correct data type on related models ([#2419](https://github.com/aws-amplify/amplify-category-api/issues/2419)) ([a3688c2](https://github.com/aws-amplify/amplify-category-api/commit/a3688c27f9287998f3db54efd6f2bae3d15ebbcc))
+
+## [3.4.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.4.1...@aws-amplify/graphql-auth-transformer@3.4.2) (2024-03-28)
+
+**Note:** Version bump only for package @aws-amplify/graphql-auth-transformer
+
+## [3.4.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.4.0...@aws-amplify/graphql-auth-transformer@3.4.1) (2024-03-13)
+
+### Bug Fixes
+
+- field auth resolver to use "validateUsingSource" auth util method ([#2170](https://github.com/aws-amplify/amplify-category-api/issues/2170)) ([b344d0d](https://github.com/aws-amplify/amplify-category-api/commit/b344d0d3b4b0ad430dd3572954b2e93ea887b28d))
+
+# [3.4.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.3.6...@aws-amplify/graphql-auth-transformer@3.4.0) (2024-02-28)
+
+### Features
+
+- add implicit fields to filter input ([#2236](https://github.com/aws-amplify/amplify-category-api/issues/2236)) ([f7ec601](https://github.com/aws-amplify/amplify-category-api/commit/f7ec6014d4eecfede186129a6ea19041780bafb3))
+
 ## [3.3.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-auth-transformer@3.3.5...@aws-amplify/graphql-auth-transformer@3.3.6) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/graphql-auth-transformer

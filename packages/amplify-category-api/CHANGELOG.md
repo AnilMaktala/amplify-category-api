@@ -3,6 +3,67 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [5.12.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.7...@aws-amplify/amplify-category-api@5.12.0) (2024-06-25)
+
+### Features
+
+- allow subscriptions to inherit primary model auth rules for relational fields behind a feature flag ([#2649](https://github.com/aws-amplify/amplify-category-api/issues/2649)) ([56a853a](https://github.com/aws-amplify/amplify-category-api/commit/56a853ace0026de97395cfa17ca156cf360ac5c2))
+- **generate-schema:** custom ssl cert support to generate schema command ([#2615](https://github.com/aws-amplify/amplify-category-api/issues/2615)) ([390887f](https://github.com/aws-amplify/amplify-category-api/commit/390887ff4467baca9dad8f70071442b95bb04cf9))
+
+## [5.11.7](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.6...@aws-amplify/amplify-category-api@5.11.7) (2024-06-06)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+## [5.11.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.5...@aws-amplify/amplify-category-api@5.11.6) (2024-06-04)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+## [5.11.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.4...@aws-amplify/amplify-category-api@5.11.5) (2024-05-15)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+## [5.11.4](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.3...@aws-amplify/amplify-category-api@5.11.4) (2024-05-10)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+## [5.11.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.2...@aws-amplify/amplify-category-api@5.11.3) (2024-05-01)
+
+### Performance Improvements
+
+- **graphql-model-transformer:** minimal provider framework and inline policies ([#2490](https://github.com/aws-amplify/amplify-category-api/issues/2490)) ([a86c816](https://github.com/aws-amplify/amplify-category-api/commit/a86c816ceb288376c4dfa9b1d12413edd28cf75e))
+
+## [5.11.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.1...@aws-amplify/amplify-category-api@5.11.2) (2024-04-26)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+## [5.11.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.11.0...@aws-amplify/amplify-category-api@5.11.1) (2024-04-16)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+# [5.11.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.10.0...@aws-amplify/amplify-category-api@5.11.0) (2024-04-11)
+
+### Features
+
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+# [5.10.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.9.8...@aws-amplify/amplify-category-api@5.10.0) (2024-03-28)
+
+### Bug Fixes
+
+- REST deployment issue due to missing ecs:TagResource permission ([#2378](https://github.com/aws-amplify/amplify-category-api/issues/2378)) ([96d08e9](https://github.com/aws-amplify/amplify-category-api/commit/96d08e9812e2ed45541f88d1360c90d5bc8a2fca))
+
+### Features
+
+- add secrets manager as credential store for sql lambda ([#2289](https://github.com/aws-amplify/amplify-category-api/issues/2289)) ([affdb98](https://github.com/aws-amplify/amplify-category-api/commit/affdb988b499591c3a96608f772b637ddd8c3a0c))
+
+## [5.9.8](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.9.7...@aws-amplify/amplify-category-api@5.9.8) (2024-03-13)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
+## [5.9.7](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.9.6...@aws-amplify/amplify-category-api@5.9.7) (2024-02-28)
+
+**Note:** Version bump only for package @aws-amplify/amplify-category-api
+
 ## [5.9.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/amplify-category-api@5.9.5...@aws-amplify/amplify-category-api@5.9.6) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/amplify-category-api

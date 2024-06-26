@@ -91,6 +91,32 @@ export abstract class DataSourceAdapter {
 }
 
 // @public (undocumented)
+export interface DataSourceConfig {
+    // (undocumented)
+    database: string;
+    // (undocumented)
+    host: string;
+    // (undocumented)
+    password: string;
+    // (undocumented)
+    port: number;
+    // (undocumented)
+    sslCertificate?: string;
+    // (undocumented)
+    username: string;
+}
+
+// @public (undocumented)
+export type DataSourceGenerateConfig = {
+    secretNames: {
+        connectionUri: string;
+        sslCertificate?: string;
+    };
+    identifier: string;
+    vpcConfig?: VpcConfig;
+};
+
+// @public (undocumented)
 export type DBEngineType = 'MySQL' | 'Postgres' | 'DynamoDB';
 
 // @public (undocumented)
@@ -157,16 +183,22 @@ export const findMatchingField: (columnName: string, taleName: string, document:
 export const generateGraphQLSchema: (schema: Schema, existingSchemaDocument?: DocumentNode | undefined) => string;
 
 // @public (undocumented)
-export const generateTypescriptDataSchema: (schema: Schema) => string;
+export const generateTypescriptDataSchema: (schema: Schema, config?: DataSourceGenerateConfig) => string;
 
 // @public (undocumented)
-export const getHostVpc: (hostname: string, region: string) => Promise<VpcConfig | undefined>;
+export const getHostVpc: (hostname: string, region?: string) => Promise<VpcConfig | undefined>;
 
 // @public (undocumented)
 export const getParentNode: (ancestors: any[]) => ObjectTypeDefinitionNode | undefined;
 
 // @public (undocumented)
 export const getRefersToDirective: (name: string) => DirectiveNode;
+
+// @public (undocumented)
+export const getSSLConfig: (host: string, sslCertificate?: string) => {
+    rejectUnauthorized: boolean;
+    ca?: string;
+};
 
 // @public (undocumented)
 export const graphqlSchemaFromSQLSchema: (sqlSchema: string, engineType: ImportedRDSType) => string;
@@ -226,7 +258,7 @@ export class Model {
 
 // @public (undocumented)
 export class MySQLDataSourceAdapter extends DataSourceAdapter {
-    constructor(config: MySQLDataSourceConfig);
+    constructor(config: DataSourceConfig);
     // (undocumented)
     cleanup(): void;
     // (undocumented)
@@ -243,20 +275,6 @@ export class MySQLDataSourceAdapter extends DataSourceAdapter {
     protected querySchema(): Promise<string>;
     // (undocumented)
     test(): Promise<boolean>;
-}
-
-// @public (undocumented)
-export interface MySQLDataSourceConfig {
-    // (undocumented)
-    database: string;
-    // (undocumented)
-    host: string;
-    // (undocumented)
-    password: string;
-    // (undocumented)
-    port: number;
-    // (undocumented)
-    username: string;
 }
 
 // @public (undocumented)
@@ -295,7 +313,7 @@ export interface NonNullType {
 
 // @public (undocumented)
 export class PostgresDataSourceAdapter extends DataSourceAdapter {
-    constructor(config: PostgresDataSourceConfig);
+    constructor(config: DataSourceConfig);
     // (undocumented)
     cleanup(): void;
     // (undocumented)
@@ -312,20 +330,6 @@ export class PostgresDataSourceAdapter extends DataSourceAdapter {
     protected querySchema(): Promise<string>;
     // (undocumented)
     test(): Promise<boolean>;
-}
-
-// @public (undocumented)
-export interface PostgresDataSourceConfig {
-    // (undocumented)
-    database: string;
-    // (undocumented)
-    host: string;
-    // (undocumented)
-    password: string;
-    // (undocumented)
-    port: number;
-    // (undocumented)
-    username: string;
 }
 
 // @public (undocumented)
@@ -431,6 +435,9 @@ export type TypescriptDataSchemaGeneratorConfig = {
     database: string;
     username: string;
     password: string;
+    connectionUriSecretName: string;
+    sslCertificate?: string;
+    sslCertificateSecretName?: string;
     outputFile?: string;
 };
 

@@ -158,8 +158,8 @@ export class DefaultTransformHost implements TransformHostProvider {
     if (!this.api.disableResolverDeduping && this.appsyncFunctions.has(slotHash)) {
       const appsyncFunction = this.appsyncFunctions.get(slotHash)!;
       // generating duplicate appsync functions vtl files to help in custom overrides
-      requestMappingTemplate.bind(appsyncFunction);
-      responseMappingTemplate.bind(appsyncFunction);
+      requestMappingTemplate.bind(appsyncFunction, this.api.assetProvider);
+      responseMappingTemplate.bind(appsyncFunction, this.api.assetProvider);
       return appsyncFunction;
     }
 
@@ -187,8 +187,8 @@ export class DefaultTransformHost implements TransformHostProvider {
       throw new Error(`DataSource ${dataSourceName} is missing in the API`);
     }
 
-    const requestTemplateLocation = requestMappingTemplate.bind(this.api);
-    const responseTemplateLocation = responseMappingTemplate.bind(this.api);
+    const requestTemplateLocation = requestMappingTemplate.bind(this.api, this.api.assetProvider);
+    const responseTemplateLocation = responseMappingTemplate.bind(this.api, this.api.assetProvider);
     const resolverName = toCamelCase([resourceName(typeName), resourceName(fieldName), 'Resolver']);
     const resourceId = resolverLogicalId ?? ResolverResourceIDs.ResolverResourceID(typeName, fieldName);
 
@@ -249,6 +249,7 @@ export class DefaultTransformHost implements TransformHostProvider {
     timeout?: Duration,
     scope?: Construct,
     vpc?: VpcConfig,
+    description?: string,
   ): IFunction => {
     const dummyCode = 'if __name__ == "__main__":'; // assing dummy code so as to be overriden later
     const fn = new Function(scope || this.api, functionName, {
@@ -259,11 +260,12 @@ export class DefaultTransformHost implements TransformHostProvider {
       layers,
       environment,
       timeout,
+      description,
     });
     fn.addLayers();
     const cfnFn = fn.node.defaultChild as CfnFunction;
     setResourceName(fn, { name: functionName, setOnDefaultChild: true });
-    const functionCode = new S3MappingFunctionCode(functionKey, filePath).bind(fn);
+    const functionCode = new S3MappingFunctionCode(functionKey, filePath).bind(fn, this.api.assetProvider);
     cfnFn.code = {
       s3Key: functionCode.s3ObjectKey,
       s3Bucket: functionCode.s3BucketName,

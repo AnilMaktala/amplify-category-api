@@ -6,17 +6,17 @@ import {
   ImportedRDSType,
   ImportedDataSourceConfig,
 } from '@aws-amplify/graphql-transformer-core';
-import { MySQLDataSourceAdapter, DataSourceAdapter, MySQLDataSourceConfig } from '@aws-amplify/graphql-schema-generator';
+import { MySQLDataSourceAdapter, DataSourceAdapter, DataSourceConfig } from '@aws-amplify/graphql-schema-generator';
 import { printer } from '@aws-amplify/amplify-prompts';
 import { DeleteFunctionCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
-import { SqlModelDataSourceDbConnectionConfig } from '@aws-amplify/graphql-transformer-interfaces';
+import { SqlModelDataSourceSsmDbConnectionConfig } from '@aws-amplify/graphql-transformer-interfaces';
 import { getAppSyncAPIName } from '../amplify-meta-utils';
 import { databaseConfigurationInputWalkthrough } from '../../service-walkthroughs/appSync-rds-db-config';
 import { SSMClient } from './ssmClient';
 
 const secretNames = ['database', 'host', 'port', 'username', 'password'];
-const secretNamesToDbConnectionConfigFields: Record<string, keyof SqlModelDataSourceDbConnectionConfig> = {
+const secretNamesToDbConnectionConfigFields: Record<string, keyof SqlModelDataSourceSsmDbConnectionConfig> = {
   database: 'databaseNameSsmPath',
   host: 'hostnameSsmPath',
   port: 'portSsmPath',
@@ -104,7 +104,7 @@ export const getExistingConnectionSecrets = async (
 /**
  * Derives expected path names for database connection config parameters stored during the Gen1 CLI import flow.
  */
-export const getExistingConnectionDbConnectionConfig = (apiName: string, secretsKey: string): SqlModelDataSourceDbConnectionConfig => {
+export const getExistingConnectionDbConnectionConfig = (apiName: string, secretsKey: string): SqlModelDataSourceSsmDbConnectionConfig => {
   const environmentName = stateManager.getCurrentEnvName();
   const appId = stateManager.getAppID();
   const dbConnectionConfig: any = {};
@@ -231,7 +231,7 @@ export const testDatabaseConnection = async (config: RDSConnectionSecrets): Prom
 
   switch (config.engine) {
     case ImportedRDSType.MYSQL:
-      adapter = new MySQLDataSourceAdapter(config as MySQLDataSourceConfig);
+      adapter = new MySQLDataSourceAdapter(config as DataSourceConfig);
       break;
     default:
       printer.error('Only MySQL Data Source is supported.');

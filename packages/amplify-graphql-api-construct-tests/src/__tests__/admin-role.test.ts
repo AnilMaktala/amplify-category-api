@@ -4,9 +4,10 @@ import { createNewProjectDir, deleteProjectDir } from 'amplify-category-api-e2e-
 import { initCDKProject, cdkDeploy, cdkDestroy } from '../commands';
 import { graphql } from '../graphql-request';
 import { invokeGraphqlProxyLambda } from '../lambda-request';
+import { DURATION_1_HOUR } from '../utils/duration-constants';
 import type { CreateTodoHandlerEvent, CreateTodoResponseData } from './backends/admin-role/apiInvoker';
 
-jest.setTimeout(1000 * 60 * 60 /* 1 hour */);
+jest.setTimeout(DURATION_1_HOUR);
 
 describe('CDK Auth Modes', () => {
   let projRoot: string;
@@ -40,12 +41,21 @@ describe('CDK Auth Modes', () => {
       ],
     });
     const outputs = await cdkDeploy(projRoot, '--all');
-    const { awsAppsyncApiEndpoint: apiEndpoint, awsAppsyncApiKey: apiKey, ApiInvokerFunctionName: functionName } = outputs[name];
+    const {
+      awsAppsyncApiEndpoint: apiEndpoint,
+      awsAppsyncApiKey: apiKey,
+      ApiInvokerFunctionName: functionName,
+      awsAppsyncRegion: region,
+    } = outputs[name];
 
     const testTitle = crypto.randomUUID();
 
     // Validate that the lambda can be invoked to create a record via signed IAM admin role.
-    const invokeResult = await invokeGraphqlProxyLambda<CreateTodoHandlerEvent, CreateTodoResponseData>(functionName, { title: testTitle });
+    const invokeResult = await invokeGraphqlProxyLambda<CreateTodoHandlerEvent, CreateTodoResponseData>(
+      functionName,
+      { title: testTitle },
+      region,
+    );
 
     // And the result object is returned
     expect(invokeResult.createTodo.title).toEqual(testTitle);

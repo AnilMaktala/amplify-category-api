@@ -141,9 +141,10 @@ export type AssetProps = {
 };
 
 // @public (undocumented)
-export type AssetProvider = {
+export interface AssetProvider {
+    // (undocumented)
     provide: (scope: Construct, name: string, props: AssetProps) => S3Asset;
-};
+}
 
 // Warning: (ae-forgotten-export) The symbol "NoneDataSourceProvider" needs to be exported by the entry point index.d.ts
 //
@@ -199,6 +200,8 @@ export interface GraphQLAPIProvider extends IConstruct {
     // (undocumented)
     readonly apiId: string;
     // (undocumented)
+    readonly assetProvider: AssetProvider;
+    // (undocumented)
     grant: (grantee: IGrantable, resources: APIIAMResourceProvider, ...actions: string[]) => Grant;
     // (undocumented)
     grantMutation: (grantee: IGrantable, ...fields: string[]) => Grant;
@@ -221,6 +224,18 @@ export interface InlineMappingTemplateProvider {
     // (undocumented)
     type: MappingTemplateType.INLINE;
 }
+
+// @public (undocumented)
+export const isSqlModelDataSourceDbConnectionConfig: (obj: any) => obj is SqlModelDataSourceDbConnectionConfig;
+
+// @public (undocumented)
+export const isSqlModelDataSourceSecretsManagerDbConnectionConfig: (obj: any) => obj is SqlModelDataSourceSecretsManagerDbConnectionConfig;
+
+// @public (undocumented)
+export const isSqlModelDataSourceSsmDbConnectionConfig: (obj: any) => obj is SqlModelDataSourceSsmDbConnectionConfig;
+
+// @public (undocumented)
+export const isSqlModelDataSourceSsmDbConnectionStringConfig: (obj: any) => obj is SqlModelDataSourceSsmDbConnectionStringConfig;
 
 // @public (undocumented)
 export type MappingTemplateProvider = InlineMappingTemplateProvider | S3MappingTemplateProvider;
@@ -302,6 +317,20 @@ export interface RDSLayerMappingProvider {
 }
 
 // @public (undocumented)
+export interface RDSSNSTopicMapping {
+    // (undocumented)
+    readonly [key: string]: {
+        topicArn: string;
+    };
+}
+
+// @public (undocumented)
+export interface RDSSNSTopicMappingProvider {
+    // (undocumented)
+    rdsSnsTopicMapping?: RDSSNSTopicMapping;
+}
+
+// @public (undocumented)
 type ReadonlyArray_2<T> = Readonly<Array<Readonly<T>>>;
 export { ReadonlyArray_2 as ReadonlyArray }
 
@@ -324,7 +353,7 @@ export type S3Asset = {
 // @public (undocumented)
 export interface S3MappingFunctionCodeProvider {
     // (undocumented)
-    bind: (scope: Construct) => IAsset;
+    bind: (scope: Construct, assetProvider: AssetProvider) => IAsset;
     // (undocumented)
     type: MappingTemplateType.S3_LOCATION;
 }
@@ -332,7 +361,7 @@ export interface S3MappingFunctionCodeProvider {
 // @public (undocumented)
 export interface S3MappingTemplateProvider {
     // (undocumented)
-    bind: (scope: Construct) => string;
+    bind: (scope: Construct, assetProvider: AssetProvider) => string;
     // (undocumented)
     getTemplateHash: () => string;
     // (undocumented)
@@ -372,7 +401,24 @@ export interface SQLLambdaModelDataSourceStrategy extends ModelDataSourceStrateg
 }
 
 // @public (undocumented)
-export interface SqlModelDataSourceDbConnectionConfig {
+export type SqlModelDataSourceDbConnectionConfig = SqlModelDataSourceSecretsManagerDbConnectionConfig | SqlModelDataSourceSsmDbConnectionConfig | SqlModelDataSourceSsmDbConnectionStringConfig;
+
+// @public (undocumented)
+export interface SqlModelDataSourceSecretsManagerDbConnectionConfig {
+    // (undocumented)
+    readonly databaseName: string;
+    // (undocumented)
+    readonly hostname: string;
+    // (undocumented)
+    readonly keyArn?: string;
+    // (undocumented)
+    readonly port: number;
+    // (undocumented)
+    readonly secretArn: string;
+}
+
+// @public (undocumented)
+export interface SqlModelDataSourceSsmDbConnectionConfig {
     // (undocumented)
     readonly databaseNameSsmPath: string;
     // (undocumented)
@@ -383,6 +429,12 @@ export interface SqlModelDataSourceDbConnectionConfig {
     readonly portSsmPath: string;
     // (undocumented)
     readonly usernameSsmPath: string;
+}
+
+// @public (undocumented)
+export interface SqlModelDataSourceSsmDbConnectionStringConfig {
+    // (undocumented)
+    readonly connectionUriSsmPath: string | string[];
 }
 
 // @public (undocumented)
@@ -430,6 +482,7 @@ export type SynthParameters = {
     userPoolId?: string;
     identityPoolId?: string;
     adminRoles?: string[];
+    enableIamAccess?: boolean;
 };
 
 // @public (undocumented)
@@ -477,6 +530,8 @@ export interface TransformerContextOutputProvider {
     // (undocumented)
     addUnionExtension(obj: UnionTypeExtensionNode): void;
     // (undocumented)
+    getInput(name: string): InputObjectTypeDefinitionNode | undefined;
+    // (undocumented)
     getMutation(): ObjectTypeDefinitionNode | undefined;
     // (undocumented)
     getMutationTypeName(): string | undefined;
@@ -503,11 +558,13 @@ export interface TransformerContextOutputProvider {
     // (undocumented)
     putType(obj: TypeDefinitionNode): void;
     // (undocumented)
+    updateInput(obj: InputObjectTypeDefinitionNode): void;
+    // (undocumented)
     updateObject(obj: ObjectTypeDefinitionNode): void;
 }
 
 // @public (undocumented)
-export interface TransformerContextProvider extends DataSourceStrategiesProvider, RDSLayerMappingProvider {
+export interface TransformerContextProvider extends DataSourceStrategiesProvider, RDSLayerMappingProvider, RDSSNSTopicMappingProvider {
     // (undocumented)
     api: GraphQLAPIProvider;
     // (undocumented)
@@ -779,7 +836,7 @@ export interface TransformerSchemaHelperProvider {
 }
 
 // @public (undocumented)
-export type TransformerSchemaVisitStepContextProvider = Pick<TransformerContextProvider, 'inputDocument' | 'dataSourceStrategies' | 'sqlDirectiveDataSourceStrategies' | 'output' | 'providerRegistry' | 'transformParameters' | 'isProjectUsingDataStore' | 'getResolverConfig' | 'metadata' | 'authConfig' | 'resourceHelper'>;
+export type TransformerSchemaVisitStepContextProvider = Pick<TransformerContextProvider, 'inputDocument' | 'dataSourceStrategies' | 'sqlDirectiveDataSourceStrategies' | 'output' | 'providerRegistry' | 'transformParameters' | 'isProjectUsingDataStore' | 'getResolverConfig' | 'metadata' | 'authConfig' | 'resourceHelper' | 'synthParameters'>;
 
 // @public (undocumented)
 export type TransformerSecrets = {
@@ -805,7 +862,7 @@ export interface TransformHostProvider {
     // (undocumented)
     addLambdaFunction: (functionName: string, functionKey: string, handlerName: string, filePath: string, runtime: Runtime, layers?: ILayerVersion[], role?: IRole, environment?: {
         [key: string]: string;
-    }, timeout?: Duration, scope?: Construct, vpc?: VpcConfig) => IFunction;
+    }, timeout?: Duration, scope?: Construct, vpc?: VpcConfig, description?: string) => IFunction;
     // (undocumented)
     addNoneDataSource(name: string, options?: DataSourceOptions, scope?: Construct): NoneDataSource;
     // (undocumented)
@@ -841,6 +898,7 @@ export type TransformParameters = {
     useSubUsernameForDefaultIdentityClaim: boolean;
     populateOwnerFieldForStaticGroupAuth: boolean;
     suppressApiKeyGeneration: boolean;
+    subscriptionsInheritPrimaryAuth: boolean;
     secondaryKeyAsGSI: boolean;
     enableAutoIndexQueryNames: boolean;
     respectPrimaryKeyAttributesOnConnectionField: boolean;
@@ -865,7 +923,7 @@ export interface VpcConfig {
 
 // Warnings were encountered during analysis:
 //
-// src/graphql-api-provider.ts:35:3 - (ae-forgotten-export) The symbol "OpenIDConnectConfig" needs to be exported by the entry point index.d.ts
+// src/graphql-api-provider.ts:36:3 - (ae-forgotten-export) The symbol "OpenIDConnectConfig" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

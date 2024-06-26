@@ -3,6 +3,56 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [6.5.0](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.21...amplify-category-api-util-mock@6.5.0) (2024-06-25)
+
+### Features
+
+- allow subscriptions to inherit primary model auth rules for relational fields behind a feature flag ([#2649](https://github.com/aws-amplify/amplify-category-api/issues/2649)) ([56a853a](https://github.com/aws-amplify/amplify-category-api/commit/56a853ace0026de97395cfa17ca156cf360ac5c2))
+
+## [6.4.21](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.20...amplify-category-api-util-mock@6.4.21) (2024-06-06)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.20](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.19...amplify-category-api-util-mock@6.4.20) (2024-06-04)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.19](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.18...amplify-category-api-util-mock@6.4.19) (2024-05-15)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.18](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.17...amplify-category-api-util-mock@6.4.18) (2024-05-10)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.17](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.16...amplify-category-api-util-mock@6.4.17) (2024-05-01)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.16](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.15...amplify-category-api-util-mock@6.4.16) (2024-04-26)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.15](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.14...amplify-category-api-util-mock@6.4.15) (2024-04-16)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.14](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.13...amplify-category-api-util-mock@6.4.14) (2024-04-11)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.13](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.12...amplify-category-api-util-mock@6.4.13) (2024-03-28)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.12](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.11...amplify-category-api-util-mock@6.4.12) (2024-03-13)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
+## [6.4.11](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.10...amplify-category-api-util-mock@6.4.11) (2024-02-28)
+
+**Note:** Version bump only for package amplify-category-api-util-mock
+
 ## [6.4.10](https://github.com/aws-amplify/amplify-category-api/compare/amplify-category-api-util-mock@6.4.9...amplify-category-api-util-mock@6.4.10) (2024-02-05)
 
 **Note:** Version bump only for package amplify-category-api-util-mock

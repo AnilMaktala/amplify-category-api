@@ -3,6 +3,60 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.6.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.7...@aws-amplify/graphql-transformer@1.6.0) (2024-06-25)
+
+### Features
+
+- allow subscriptions to inherit primary model auth rules for relational fields behind a feature flag ([#2649](https://github.com/aws-amplify/amplify-category-api/issues/2649)) ([56a853a](https://github.com/aws-amplify/amplify-category-api/commit/56a853ace0026de97395cfa17ca156cf360ac5c2))
+
+## [1.5.7](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.6...@aws-amplify/graphql-transformer@1.5.7) (2024-06-06)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.5.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.5...@aws-amplify/graphql-transformer@1.5.6) (2024-06-04)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.5.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.4...@aws-amplify/graphql-transformer@1.5.5) (2024-05-15)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.5.4](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.3...@aws-amplify/graphql-transformer@1.5.4) (2024-05-10)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.5.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.2...@aws-amplify/graphql-transformer@1.5.3) (2024-05-01)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.5.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.1...@aws-amplify/graphql-transformer@1.5.2) (2024-04-26)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.5.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.5.0...@aws-amplify/graphql-transformer@1.5.1) (2024-04-16)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+# [1.5.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.4.0...@aws-amplify/graphql-transformer@1.5.0) (2024-04-11)
+
+### Features
+
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+# [1.4.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.3.12...@aws-amplify/graphql-transformer@1.4.0) (2024-03-28)
+
+### Features
+
+- add secrets manager as credential store for sql lambda ([#2289](https://github.com/aws-amplify/amplify-category-api/issues/2289)) ([affdb98](https://github.com/aws-amplify/amplify-category-api/commit/affdb988b499591c3a96608f772b637ddd8c3a0c))
+
+## [1.3.12](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.3.11...@aws-amplify/graphql-transformer@1.3.12) (2024-03-13)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
+## [1.3.11](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.3.10...@aws-amplify/graphql-transformer@1.3.11) (2024-02-28)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer
+
 ## [1.3.10](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer@1.3.9...@aws-amplify/graphql-transformer@1.3.10) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/graphql-transformer

@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.3](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.5.2...@aws-amplify/graphql-transformer-test-utils@0.5.3) (2024-06-25)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer-test-utils
+
+## [0.5.2](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.5.1...@aws-amplify/graphql-transformer-test-utils@0.5.2) (2024-05-10)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer-test-utils
+
+## [0.5.1](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.5.0...@aws-amplify/graphql-transformer-test-utils@0.5.1) (2024-04-26)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer-test-utils
+
+# [0.5.0](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.4.7...@aws-amplify/graphql-transformer-test-utils@0.5.0) (2024-04-11)
+
+### Features
+
+- Fetch SNS topic ARN from SQL manifest ([#2345](https://github.com/aws-amplify/amplify-category-api/issues/2345)) ([fca256e](https://github.com/aws-amplify/amplify-category-api/commit/fca256e7cabf5af838b28b26c4ae0c3c8b1583eb))
+
+## [0.4.7](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.4.6...@aws-amplify/graphql-transformer-test-utils@0.4.7) (2024-03-28)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer-test-utils
+
+## [0.4.6](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.4.5...@aws-amplify/graphql-transformer-test-utils@0.4.6) (2024-02-28)
+
+**Note:** Version bump only for package @aws-amplify/graphql-transformer-test-utils
+
 ## [0.4.5](https://github.com/aws-amplify/amplify-category-api/compare/@aws-amplify/graphql-transformer-test-utils@0.4.4...@aws-amplify/graphql-transformer-test-utils@0.4.5) (2024-02-05)
 
 **Note:** Version bump only for package @aws-amplify/graphql-transformer-test-utils
